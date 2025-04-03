@@ -1,6 +1,9 @@
 [versions]
 agp = "8.9.1"
 converterGson = "2.9.0"
+firebaseBom = "33.12.0"
+firebaseBomVersion = "32.7.4"
+firebaseMessagingKtx = "24.1.1"
 hiltAndroid = "2.51.1"
 hiltCompiler = "2.50"
 insertKoinKoinAndroid = "3.1.2"
@@ -25,6 +28,11 @@ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = 
 androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }
+firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
+firebase-bom-v3274 = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBomVersion" }
+firebase-messaging = { module = "com.google.firebase:firebase-messaging" }
+firebase-messaging-ktx = { module = "com.google.firebase:firebase-messaging-ktx" }
+google-firebase-messaging-ktx = { module = "com.google.firebase:firebase-messaging-ktx", version.ref = "firebaseMessagingKtx" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hiltAndroid" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hiltCompiler" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }

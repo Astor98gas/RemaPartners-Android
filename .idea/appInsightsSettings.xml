@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.arsansys.remapartners" />
+                  <option name="mobileSdkAppId" value="1:668770579424:android:3015ed89377155cff6f185" />
+                  <option name="projectId" value="remapartners-6177ae8a" />
+                  <option name="projectNumber" value="668770579424" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

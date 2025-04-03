@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -67,8 +68,12 @@ dependencies {
     implementation (libs.hilt.android)
     implementation (libs.androidx.lifecycle.viewmodel.ktx)
 
-        implementation (libs.koin.android.v312)
-        implementation (libs.koin.androidx.compose)
+    implementation (libs.koin.android.v312)
+    implementation (libs.koin.androidx.compose)
 
+    implementation (platform(libs.firebase.bom))
+    implementation (libs.firebase.messaging)
 
+    implementation (platform(libs.firebase.bom.v3274))
+    implementation (libs.firebase.messaging.ktx)
 }

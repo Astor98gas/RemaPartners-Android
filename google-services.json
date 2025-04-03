@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "668770579424",
+    "project_id": "remapartners-6177ae8a",
+    "storage_bucket": "remapartners-6177ae8a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:668770579424:android:3015ed89377155cff6f185",
+        "android_client_info": {
+          "package_name": "com.arsansys.remapartners"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCLfhb_hm6j75kTd9f2mw85OFU9t7E9fRQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
