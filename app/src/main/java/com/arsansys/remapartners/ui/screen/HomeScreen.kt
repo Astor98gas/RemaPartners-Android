@@ -1,5 +1,6 @@
 package com.arsansys.remapartners.ui.screen
 
+import android.content.ContentValues.TAG
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -9,15 +10,13 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyItemScope
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -31,8 +30,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.arsansys.remapartners.data.model.entities.UserEntity
+import com.arsansys.remapartners.data.model.firebase.Note
 import com.arsansys.remapartners.data.repository.UserApiRest
 import com.arsansys.remapartners.data.repository.UserRetrofitInstance
+import com.google.android.gms.tasks.OnCompleteListener
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.launch
 
@@ -49,22 +50,25 @@ fun HomeScreen(
     val coroutineScope = rememberCoroutineScope()
     var firebaseToken by remember { mutableStateOf("") }
 
+
+
     LaunchedEffect(Unit) {
-
-        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
-            if (task.isSuccessful) {
-                firebaseToken = task.result
-                Log.d("FirebaseToken", "Token: $firebaseToken")
-            } else {
-                Log.w("FirebaseToken", "Fetching FCM registration token failed", task.exception)
+        // Obtener el token de Firebase
+        FirebaseMessaging.getInstance().token.addOnCompleteListener(OnCompleteListener { task ->
+            if (!task.isSuccessful) {
+                Log.w(TAG, "Fetching FCM registration token failed", task.exception)
+                return@OnCompleteListener
             }
-        }
 
+            // Obtener el nuevo token
+            firebaseToken = task.result ?: ""
+            Log.d(TAG, "Token: $firebaseToken")
+        })
         coroutineScope.launch {
             try {
                 val response = userApi.getUsers()
                 if (response.isSuccessful) {
-                    val userList = response.body()?: emptyList()
+                    val userList = response.body() ?: emptyList()
 
                     users.clear()
                     users.addAll(userList)
@@ -95,7 +99,7 @@ fun HomeScreen(
                         try {
                             val response = userApi.getUsers()
                             if (response.isSuccessful) {
-                                val userList = response.body()?: emptyList()
+                                val userList = response.body() ?: emptyList()
 
                                 users.clear()
                                 users.addAll(userList)
@@ -116,22 +120,34 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
             ) {
-                items(users) {  user ->
+                items(users) { user ->
                     UserCard(user = user)
                 }
             }
+            var title by remember { mutableStateOf("") }
+            TextField(
+                onValueChange = {
+                    title = it
+                },
+                value = title,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+            )
             Button(
                 onClick = {
+                    var note: Note? = Note()
+                    note?.subject = title
+                    note?.content = "Prueba"
+                    note?.imageUrl = ""
+                    note?.token = firebaseToken
+                    note?.data = mutableMapOf("key" to "value")
+
                     coroutineScope.launch {
                         try {
-                            val response = userApi.getNotification("Bearer $firebaseToken")
-                            if (response.isSuccessful) {
-                                Log.d("Notification", response.body().toString())
-                            } else {
-                                Log.d("Notification", "Error: ${response.code()}")
-                            }
+                            userApi.sendNotification(note)
                         } catch (e: Exception) {
-                            Log.d("Notification", "Exception: ${e.message}")
+                            Log.d("TAG", "Exception: ${e.message}")
                         }
                     }
                 }
@@ -160,5 +176,6 @@ fun UserCard(user: UserEntity) {
             Text(text = "Username: ${user.username}")
             Text(text = "Email: ${user.email}")
         }
-    }}
+    }
+}
 

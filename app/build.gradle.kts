@@ -60,20 +60,23 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
 
-    implementation (libs.koin.android)
-    implementation (libs.koin.android.v340)
-    implementation (libs.androidx.navigation.compose)
+    implementation(libs.koin.android)
+    implementation(libs.koin.android.v340)
+    implementation(libs.androidx.navigation.compose)
     implementation(libs.retrofit)
     implementation(libs.converter.gson)
-    implementation (libs.hilt.android)
-    implementation (libs.androidx.lifecycle.viewmodel.ktx)
+    implementation(libs.hilt.android)
+    implementation(libs.androidx.lifecycle.viewmodel.ktx)
 
-    implementation (libs.koin.android.v312)
-    implementation (libs.koin.androidx.compose)
+    implementation(libs.koin.android.v312)
+    implementation(libs.koin.androidx.compose)
 
-    implementation (platform(libs.firebase.bom))
-    implementation (libs.firebase.messaging)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
 
-    implementation (platform(libs.firebase.bom.v3274))
-    implementation (libs.firebase.messaging.ktx)
+    implementation(platform(libs.firebase.bom.v3274))
+    implementation(libs.firebase.messaging.ktx)
+
+    implementation(libs.firebase.analytics.ktx)
+
 }
