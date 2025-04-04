@@ -3,8 +3,10 @@ package com.arsansys.remapartners.data.service
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.ContentValues.TAG
+import android.graphics.BitmapFactory
 import android.os.Build
 import android.util.Log
+import androidx.compose.material3.Icon
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.arsansys.remapartners.R
@@ -44,7 +46,7 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
     private fun showNotification(title: String?, message: String?) {
         val notificationId = Random.nextInt(1000) // Genera un número aleatorio entre 0 y 999
         val builder = NotificationCompat.Builder(this, channelId)
-            .setSmallIcon(R.mipmap.ic_logo)
+            .setSmallIcon(R.drawable.ic_logo)
             .setContentTitle(title)
             .setContentText(message)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
