@@ -79,4 +79,6 @@ dependencies {
 
     implementation(libs.firebase.analytics.ktx)
 
+    implementation(libs.androidx.material.icons.extended)
+
 }

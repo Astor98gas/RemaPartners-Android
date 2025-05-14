@@ -1,6 +1,10 @@
 package com.arsansys.remapartners.ui.screen
 
+import android.content.BroadcastReceiver
 import android.content.ContentValues.TAG
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -20,6 +24,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -33,6 +38,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.NavController
 import com.arsansys.remapartners.data.model.entities.UserEntity
 import com.arsansys.remapartners.data.model.firebase.Note
@@ -60,7 +66,29 @@ fun HomeScreen(
     var firebaseToken by remember { mutableStateOf("") }
 
     // Obtener el nombre de usuario desde SessionManager
-    val username = remember { mutableStateOf(sessionManager.fetchUsername() ?: "") }
+    var username = remember { mutableStateOf(sessionManager.fetchUsername() ?: "") }
+
+    // Receptor de broadcast para el token expirado
+    val tokenExpiredReceiver = remember {
+        object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                if (intent.action == "com.arsansys.remapartners.TOKEN_EXPIRED") {
+                    username.value = ""
+                }
+            }
+        }
+    }
+
+    // Registrar el receptor cuando el composable se active
+    DisposableEffect(Unit) {
+        val filter = IntentFilter("com.arsansys.remapartners.TOKEN_EXPIRED")
+        LocalBroadcastManager.getInstance(context).registerReceiver(tokenExpiredReceiver, filter)
+
+        // Limpiar cuando el composable se destruya
+        onDispose {
+            LocalBroadcastManager.getInstance(context).unregisterReceiver(tokenExpiredReceiver)
+        }
+    }
 
     LaunchedEffect(Unit) {
         // Obtener el token de Firebase
