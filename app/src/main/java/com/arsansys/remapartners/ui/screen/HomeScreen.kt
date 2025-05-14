@@ -298,7 +298,7 @@ fun HomeScreen(navController: NavController) {
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Text(
-                            text = "Filtros y ordenación",
+                            text = "Filtros",
                             fontWeight = FontWeight.Medium
                         )
                         Icon(
