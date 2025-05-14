@@ -4,8 +4,10 @@ import android.content.ContentValues.TAG
 import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
@@ -27,7 +29,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.arsansys.remapartners.data.model.entities.UserEntity
 import com.arsansys.remapartners.data.model.firebase.Note
@@ -36,13 +41,17 @@ import com.arsansys.remapartners.data.repository.UserRetrofitInstance
 import com.google.android.gms.tasks.OnCompleteListener
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.launch
+import com.arsansys.remapartners.data.util.SessionManager
+import com.arsansys.remapartners.ui.navigation.Screen
 
 @Composable
 fun HomeScreen(
     navController: NavController
 ) {
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
 
-    val retrofit = UserRetrofitInstance.retrofitInstance
+    val retrofit = UserRetrofitInstance.getRetrofitInstance(context)
     val userApi = retrofit.create(UserApiRest::class.java)
 
     val users = remember { mutableStateListOf<UserEntity>() }
@@ -50,7 +59,8 @@ fun HomeScreen(
     val coroutineScope = rememberCoroutineScope()
     var firebaseToken by remember { mutableStateOf("") }
 
-
+    // Obtener el nombre de usuario desde SessionManager
+    val username = remember { mutableStateOf(sessionManager.fetchUsername() ?: "") }
 
     LaunchedEffect(Unit) {
         // Obtener el token de Firebase
@@ -93,6 +103,48 @@ fun HomeScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            if (!sessionManager.fetchAuthToken().isNullOrEmpty()) {
+                // Mostrar el nombre del usuario si está disponible
+                if (username.value.isNotEmpty()) {
+                    Text(
+                        "¡Bienvenido, ${username.value}!",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                } else {
+                    Text(
+                        "¡Bienvenido! Sesión iniciada correctamente",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = {
+                        sessionManager.clearData()
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(Screen.Home.route) { inclusive = true }
+                        }
+                    }
+                ) {
+                    Text("Cerrar Sesión")
+                }
+            } else {
+                // Si no hay token, mostrar botón para ir a login
+                Text("No has iniciado sesión")
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = {
+                        navController.navigate(Screen.Login.route)
+                    }
+                ) {
+                    Text("Ir a Login")
+                }
+            }
             Button(
                 onClick = {
                     coroutineScope.launch {
@@ -158,7 +210,6 @@ fun HomeScreen(
             }
         }
     }
-
 }
 
 @Composable
@@ -178,4 +229,3 @@ fun UserCard(user: UserEntity) {
         }
     }
 }
-

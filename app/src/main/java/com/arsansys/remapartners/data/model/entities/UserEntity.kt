@@ -12,6 +12,8 @@ class UserEntity {
 
     internal val active = true
 
-    internal val rols: Set<RolEntity>? = null
+    internal val rol: RolEntity = RolEntity()
+
+    internal val googleTokens: String? = null
 
 }

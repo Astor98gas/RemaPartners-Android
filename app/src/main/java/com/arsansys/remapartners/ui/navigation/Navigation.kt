@@ -5,9 +5,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.arsansys.remapartners.ui.screen.HomeScreen
+import com.arsansys.remapartners.ui.screen.LoginScreen
 
 sealed class Screen(val route: String) {
     data object Home : Screen("home")
+    data object Login : Screen("login")
 }
 
 @Composable
@@ -16,5 +18,9 @@ fun AppNavigation(navController: NavHostController) {
         composable(Screen.Home.route) {
             HomeScreen(navController)
         }
+        composable(Screen.Login.route) {
+            LoginScreen(navController)
+        }
+
     }
 }

@@ -6,6 +6,6 @@ class RolEntity {
 
     private val id: Long = 0
 
-    private val name: ERol? = null
+    private val name: ERol = ERol.COMPRADOR
 
 }
