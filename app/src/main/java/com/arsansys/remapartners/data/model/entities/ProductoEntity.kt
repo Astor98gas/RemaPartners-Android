@@ -11,23 +11,23 @@ class ProductoEntity {
 
     private val idCategoria: String? = null
 
-    private val imagenes: MutableList<String?>? = null
+    internal val imagenes: MutableList<String?>? = null
 
-    private val marca: String? = null
+    internal val marca: String? = null
 
-    private val modelo: String? = null
+    internal val modelo: String? = null
 
-    private val titulo: String? = null
+    internal val titulo: String? = null
 
-    private val descripcion: String? = null
+    internal val descripcion: String? = null
 
-    private val estado: EEstado? = null
+    internal val estado: EEstado? = null
 
-    private val precioCentimos: Int? = null
+    internal val precioCentimos: Int? = null
 
-    private val moneda: EMoneda? = null
+    internal val moneda: EMoneda? = null
 
-    private val stock: Int? = null
+    internal val stock: Int? = null
 
     private val fechaCreacion: String? = null
 
@@ -41,7 +41,7 @@ class ProductoEntity {
 
     private val activo = true
 
-    private val destacado: Boolean? = null
+    internal val destacado: Boolean? = null
 
     private val camposCategoria: Array<CampoCategoriaEntity?>? =
         arrayOfNulls<CampoCategoriaEntity>(0)

@@ -21,7 +21,7 @@ class AuthInterceptor(private val context: Context) : Interceptor {
         val response = chain.proceed(requestBuilder.build())
 
         // Si obtenemos 401 o 403, el token podría haber expirado
-        if (response.code() == 401 || response.code() == 403) {
+        if (response.code == 401 || response.code == 403) {
             sessionManager.clearData()
             // Lanzar un evento para navegar a la pantalla de login
             val intent = Intent("com.arsansys.remapartners.TOKEN_EXPIRED")
