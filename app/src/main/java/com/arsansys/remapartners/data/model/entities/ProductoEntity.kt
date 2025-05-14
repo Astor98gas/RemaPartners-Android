@@ -5,11 +5,11 @@ import com.arsansys.remapartners.data.model.enums.EMoneda
 
 class ProductoEntity {
 
-    private val id: String? = null
+    internal val id: String? = null
 
     private val idUsuario: String? = null
 
-    private val idCategoria: String? = null
+    internal val idCategoria: String? = null
 
     internal val imagenes: MutableList<String?>? = null
 
