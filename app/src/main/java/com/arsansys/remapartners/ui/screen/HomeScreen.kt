@@ -5,8 +5,11 @@ import android.content.ContentValues.TAG
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.graphics.BitmapFactory
 import android.util.Log
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,11 +23,13 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Image
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -47,6 +52,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -62,9 +68,12 @@ import com.arsansys.remapartners.data.model.entities.ProductoEntity
 import com.arsansys.remapartners.data.model.entities.UserEntity
 import com.arsansys.remapartners.data.model.enums.EMoneda
 import com.arsansys.remapartners.data.model.firebase.Note
+import com.arsansys.remapartners.data.repository.ImageApiRest
+import com.arsansys.remapartners.data.repository.ImageRepository
 import com.arsansys.remapartners.data.repository.ProductosApiRest
 import com.arsansys.remapartners.data.repository.UserApiRest
 import com.arsansys.remapartners.data.repository.UserRetrofitInstance
+import com.arsansys.remapartners.data.util.ImageCache
 import com.google.android.gms.tasks.OnCompleteListener
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.launch
@@ -83,6 +92,12 @@ fun HomeScreen(
     val retrofit = UserRetrofitInstance.getRetrofitInstance(context)
     val userApi = retrofit.create(UserApiRest::class.java)
     val productosApi = retrofit.create(ProductosApiRest::class.java)
+
+    val imageCache = ImageCache(
+        ImageRepository(
+            UserRetrofitInstance.getRetrofitInstance(context).create(ImageApiRest::class.java)
+        )
+    )
 
     val coroutineScope = rememberCoroutineScope()
     var firebaseToken by remember { mutableStateOf("") }
@@ -159,53 +174,48 @@ fun HomeScreen(
         ) {
             // Cabecera que varía según el estado de login
             if (!sessionManager.fetchAuthToken().isNullOrEmpty()) {
-                // Mostrar el nombre del usuario si está disponible
-                if (username.value.isNotEmpty()) {
-                    Text(
-                        "¡Bienvenido, ${username.value}!",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                } else {
-                    Text(
-                        "¡Bienvenido! Sesión iniciada correctamente",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Botones para usuarios logueados
+                // Nuevo diseño para el encabezado cuando el usuario está conectado
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Button(
-                        onClick = {
-                            sessionManager.clearData()
-                            username.value = ""
-                        }
-                    ) {
-                        Text("Cerrar Sesión")
-                    }
+                    // Mostrar el nombre del usuario a la izquierda
+                    Text(
+                        text = if (username.value.isNotEmpty()) "Hola, ${username.value}" else "Bienvenido",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.weight(1f)
+                    )
 
-                    Button(
-                        onClick = {
-                            coroutineScope.launch {
-                                try {
-                                    cargarProductos(productosApi, productos, context)
-                                } catch (e: Exception) {
-                                    Toast.makeText(
-                                        context,
-                                        "Error al cargar productos: ${e.message}",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
-                                }
-                            }
-                        }
+                    // Botones en la derecha
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("Actualizar Productos")
+                        // Botón para ir al perfil - puedes cambiar la ruta según convenga
+                        Button(
+                            onClick = {
+                                // Navegar a la pantalla de perfil cuando exista
+                                // navController.navigate(Screen.Profile.route)
+                                Toast.makeText(context, "Ir al perfil", Toast.LENGTH_SHORT).show()
+                            },
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Perfil")
+                        }
+
+                        // Botón para cerrar sesión
+                        Button(
+                            onClick = {
+                                sessionManager.clearData()
+                                username.value = ""
+                            },
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text("Cerrar Sesión")
+                        }
                     }
                 }
             } else {
@@ -224,7 +234,8 @@ fun HomeScreen(
                     Button(
                         onClick = {
                             navController.navigate(Screen.Login.route)
-                        }
+                        },
+                        shape = RoundedCornerShape(8.dp)
                     ) {
                         Text("Iniciar Sesión")
                     }
@@ -233,14 +244,27 @@ fun HomeScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                "Catálogo de productos",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp)
-            )
+            // Título del catálogo con estilo mejorado
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
+                )
+            ) {
+                Text(
+                    "Catálogo de productos",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(12.dp),
+                    textAlign = TextAlign.Center,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
 
             // Mostrar productos independientemente del estado de login
             LazyColumn(
@@ -253,13 +277,20 @@ fun HomeScreen(
                 // Mostrar mensaje si no hay productos
                 if (productos.isEmpty()) {
                     item {
-                        Text(
-                            text = "No hay productos disponibles",
+                        Card(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(vertical = 32.dp),
-                            textAlign = TextAlign.Center
-                        )
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text(
+                                text = "No hay productos disponibles",
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(24.dp),
+                                textAlign = TextAlign.Center
+                            )
+                        }
                     }
                 }
             }
@@ -304,14 +335,62 @@ private suspend fun cargarProductos(
 
 @Composable
 fun ProductoCard(producto: ProductoEntity) {
-    val imagenes = remember { producto.imagenes?.filterNotNull() ?: emptyList() }
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    // Usar la caché compartida
+    val imageCache = remember {
+        ImageCache(
+            ImageRepository(
+                UserRetrofitInstance.getRetrofitInstance(context).create(ImageApiRest::class.java)
+            )
+        )
+    }
+
+    // Estado para almacenar la imagen principal cargada como ByteArray
+    var mainImageBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    // Procesar las URLs de las imágenes
+    val imageUrls = remember {
+        producto.imagenes?.filterNotNull() ?: emptyList()
+    }
+
+    // Cargar la imagen principal al montar el componente
+    LaunchedEffect(imageUrls) {
+        if (imageUrls.isNotEmpty()) {
+            isLoading = true
+            try {
+                // Primero, cargar solo la imagen principal
+                val mainUrl = imageUrls.first()
+                mainImageBytes = imageCache.getImage(mainUrl)
+
+                // Luego precargar el resto en segundo plano
+                coroutineScope.launch {
+                    if (imageUrls.size > 1) {
+                        imageCache.preloadImages(imageUrls.drop(1))
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("ProductoCard", "Error al cargar imagen: ${e.message}", e)
+            } finally {
+                isLoading = false
+            }
+        } else {
+            isLoading = false
+        }
+    }
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 8.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(
+            width = 1.dp,
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+        )
     ) {
         Column(
             modifier = Modifier
@@ -319,33 +398,40 @@ fun ProductoCard(producto: ProductoEntity) {
                 .padding(bottom = 16.dp)
         ) {
             // Imagen principal del producto
-            if (imagenes.isNotEmpty()) {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(imagenes.first())
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = "Imagen de ${producto.titulo}",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(200.dp)
-                )
-            } else {
-                // Imagen placeholder cuando no hay imágenes disponibles
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp)
-                        .background(MaterialTheme.colorScheme.surfaceVariant),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Image,
-                        contentDescription = "Sin imagen",
-                        modifier = Modifier.size(26.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                // Mostrar indicador de carga mientras se carga la imagen
+                if (isLoading) {
+                    androidx.compose.material3.CircularProgressIndicator()
+                } else if (mainImageBytes != null) {
+                    // Convertir ByteArray a Bitmap y mostrarlo
+                    val bitmap =
+                        BitmapFactory.decodeByteArray(mainImageBytes, 0, mainImageBytes!!.size)
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = "Imagen de ${producto.titulo}",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
                     )
+                } else {
+                    // Mostrar placeholder cuando no hay imagen o hay error
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(MaterialTheme.colorScheme.surfaceVariant),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Image,
+                            contentDescription = "Sin imagen",
+                            modifier = Modifier.size(40.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
 
@@ -369,134 +455,276 @@ fun ProductoCard(producto: ProductoEntity) {
                     )
 
                     // Precio destacado
-                    Text(
-                        text = formatearPrecio(producto.precioCentimos, producto.moneda),
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // Información secundaria
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Start
-                ) {
-                    Text(
-                        text = "${producto.marca ?: "Sin marca"} • ${producto.modelo ?: "Sin modelo"}",
-                        fontSize = 14.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer
+                        ),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            text = formatearPrecio(producto.precioCentimos, producto.moneda),
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Descripción corta
-                producto.descripcion?.let {
-                    Text(
-                        text = it,
-                        fontSize = 14.sp,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-
-                // Miniaturas de las imágenes adicionales (si hay más de una)
-                if (imagenes.size > 1) {
+                // Información de marca en tarjeta
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier.padding(vertical = 2.dp)
+                ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Mostrar solo las primeras 4 imágenes adicionales como miniaturas
-                        imagenes.drop(1).take(4).forEach { imagenUrl ->
-                            AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
-                                    .data(imagenUrl)
-                                    .crossfade(true)
-                                    .build(),
-                                contentDescription = null,
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier
-                                    .size(50.dp)
-                                    .clip(RoundedCornerShape(4.dp))
+                        Text(
+                            text = "Marca:",
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = producto.marca ?: "Sin marca",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // Información de modelo en tarjeta
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier.padding(vertical = 2.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Modelo:",
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = producto.modelo ?: "Sin modelo",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // Información de ubicación en tarjeta
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant
+                    ),
+                    shape = RoundedCornerShape(6.dp),
+                    modifier = Modifier.padding(vertical = 2.dp)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocationOn,
+                            contentDescription = "Ubicación",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = producto.direccion ?: "Ubicación no disponible",
+                            fontSize = 14.sp,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Descripción en tarjeta
+                producto.descripcion?.let {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant
+                        ),
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp)
+                        ) {
+                            Text(
+                                text = "Descripción:",
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 14.sp
+                            )
+                            Text(
+                                text = it,
+                                fontSize = 14.sp,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
+                    }
+                }
 
-                        // Indicador si hay más imágenes
-                        if (imagenes.size > 5) {
-                            Box(
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Miniaturas de las imágenes adicionales (si hay más de una)
+                if (imageUrls.size > 1) {
+                    Card(
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surface
+                        ),
+                        shape = RoundedCornerShape(8.dp),
+                        border = BorderStroke(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant
+                        ),
+                        modifier = Modifier.padding(vertical = 4.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(8.dp)
+                        ) {
+                            Text(
+                                text = "Imágenes adicionales:",
+                                fontWeight = FontWeight.Medium,
+                                fontSize = 14.sp,
+                                modifier = Modifier.padding(bottom = 4.dp)
+                            )
+
+                            Row(
                                 modifier = Modifier
-                                    .size(50.dp)
-                                    .clip(RoundedCornerShape(4.dp))
-                                    .background(MaterialTheme.colorScheme.primary),
-                                contentAlignment = Alignment.Center
+                                    .fillMaxWidth()
+                                    .height(50.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
                             ) {
-                                Text(
-                                    text = "+${imagenes.size - 5}",
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 14.sp
-                                )
+                                // Mostrar solo las primeras 4 imágenes adicionales como miniaturas
+                                imageUrls.drop(1).take(4).forEach { imagenUrl ->
+                                    ThumbnailImage(
+                                        imageUrl = imagenUrl,
+                                        modifier = Modifier
+                                            .size(50.dp)
+                                            .clip(RoundedCornerShape(4.dp))
+                                    )
+                                }
+
+                                // Indicador si hay más imágenes
+                                if (imageUrls.size > 5) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(50.dp)
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(MaterialTheme.colorScheme.primary),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "+${imageUrls.size - 5}",
+                                            color = MaterialTheme.colorScheme.onPrimary,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 14.sp
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(8.dp))
                 }
 
-                // Detalles adicionales en fila
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Fila de etiquetas de estado/stock/destacado
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     // Estado del producto
                     producto.estado?.let {
-                        Text(
-                            text = "Estado: ${it.name}",
-                            fontSize = 12.sp,
-                            modifier = Modifier
-                                .background(
-                                    color = MaterialTheme.colorScheme.surfaceVariant,
-                                    shape = RoundedCornerShape(4.dp)
-                                )
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = when (it.name) {
+                                    "NUEVO" -> MaterialTheme.colorScheme.primaryContainer
+                                    "COMO_NUEVO" -> MaterialTheme.colorScheme.secondaryContainer
+                                    "BUEN_ESTADO" -> MaterialTheme.colorScheme.tertiaryContainer
+                                    else -> MaterialTheme.colorScheme.surfaceVariant
+                                }
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                text = when (it.name) {
+                                    "NUEVO" -> "Nuevo"
+                                    "COMO_NUEVO" -> "Como nuevo"
+                                    "BUEN_ESTADO" -> "Buen estado"
+                                    "ACEPTABLE" -> "Aceptable"
+                                    else -> it.name
+                                },
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
                     }
 
                     // Stock disponible
                     producto.stock?.let {
-                        Text(
-                            text = "Stock: $it unidades",
-                            fontSize = 12.sp,
-                            modifier = Modifier
-                                .background(
-                                    color = if (it > 0) MaterialTheme.colorScheme.primaryContainer
-                                    else MaterialTheme.colorScheme.errorContainer,
-                                    shape = RoundedCornerShape(4.dp)
-                                )
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (it > 0) MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.errorContainer
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                text = "Stock: $it",
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
                     }
 
                     // Destacado
                     if (producto.destacado == true) {
-                        Text(
-                            text = "Destacado",
-                            fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onTertiaryContainer,
-                            modifier = Modifier
-                                .background(
-                                    color = MaterialTheme.colorScheme.tertiaryContainer,
-                                    shape = RoundedCornerShape(4.dp)
-                                )
-                                .padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.tertiaryContainer
+                            ),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                text = "Destacado",
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -517,4 +745,67 @@ private fun formatearPrecio(precioCentimos: Int?, moneda: EMoneda?): String {
     }
 
     return "$precio $simbolo"
+}
+
+@Composable
+fun ThumbnailImage(imageUrl: String, modifier: Modifier = Modifier) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+
+    // Usar la caché compartida
+    val imageCache = remember {
+        ImageCache(
+            ImageRepository(
+                UserRetrofitInstance.getRetrofitInstance(context).create(ImageApiRest::class.java)
+            )
+        )
+    }
+
+    var imageBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var isLoading by remember { mutableStateOf(true) }
+
+    LaunchedEffect(imageUrl) {
+        isLoading = true
+        coroutineScope.launch {
+            try {
+                imageBytes = imageCache.getImage(imageUrl)
+            } catch (e: Exception) {
+                Log.e("ThumbnailImage", "Error: ${e.message}")
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    Box(modifier = modifier) {
+        if (isLoading) {
+            androidx.compose.material3.CircularProgressIndicator(
+                modifier = Modifier
+                    .size(20.dp)
+                    .align(Alignment.Center)
+            )
+        } else if (imageBytes != null) {
+            val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes!!.size)
+            Image(
+                bitmap = bitmap.asImageBitmap(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Image,
+                    contentDescription = "Sin imagen",
+                    modifier = Modifier.size(16.dp),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
 }

@@ -37,7 +37,7 @@ class ProductoEntity {
 
     private val fechaBaja: String? = null
 
-    private val direccion: String? = null
+    internal val direccion: String? = null
 
     private val activo = true
 
