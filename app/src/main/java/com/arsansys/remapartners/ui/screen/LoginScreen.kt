@@ -1,6 +1,5 @@
 package com.arsansys.remapartners.ui.screen
 
-import android.content.Context
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
@@ -23,7 +22,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
@@ -35,7 +33,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
@@ -62,9 +59,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.arsansys.remapartners.R
-import com.arsansys.remapartners.data.model.login.LoginRequest
-import com.arsansys.remapartners.data.repository.AuthRepository
-import com.arsansys.remapartners.data.repository.UserRetrofitInstance
+import com.arsansys.remapartners.data.repository.user.AuthRepository
 import com.arsansys.remapartners.data.util.SessionManager
 import com.arsansys.remapartners.ui.navigation.Screen
 import kotlinx.coroutines.launch

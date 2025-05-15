@@ -45,4 +45,6 @@ class ProductoEntity {
 
     private val camposCategoria: Array<CampoCategoriaEntity?>? =
         arrayOfNulls<CampoCategoriaEntity>(0)
+
+    private val visitas: Long = 0
 }

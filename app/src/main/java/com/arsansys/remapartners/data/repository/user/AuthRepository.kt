@@ -1,4 +1,4 @@
-package com.arsansys.remapartners.data.repository
+package com.arsansys.remapartners.data.repository.user
 
 import android.content.Context
 import com.arsansys.remapartners.data.model.login.LoginRequest

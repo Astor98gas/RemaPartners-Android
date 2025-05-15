@@ -1,7 +1,6 @@
 package com.arsansys.remapartners.ui.screen
 
 import android.content.BroadcastReceiver
-import android.content.ContentValues.TAG
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
@@ -14,7 +13,6 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -27,15 +25,11 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -43,7 +37,6 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.LocationOn
-import androidx.compose.material.icons.filled.Logout
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.Star
@@ -59,7 +52,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -75,7 +67,6 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -89,21 +80,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.NavController
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
 import com.arsansys.remapartners.data.model.entities.ProductoEntity
-import com.arsansys.remapartners.data.model.entities.UserEntity
 import com.arsansys.remapartners.data.model.enums.EEstado
 import com.arsansys.remapartners.data.model.enums.EMoneda
-import com.arsansys.remapartners.data.model.firebase.Note
-import com.arsansys.remapartners.data.repository.ImageApiRest
-import com.arsansys.remapartners.data.repository.ImageRepository
-import com.arsansys.remapartners.data.repository.ProductosApiRest
-import com.arsansys.remapartners.data.repository.UserApiRest
-import com.arsansys.remapartners.data.repository.UserRetrofitInstance
+import com.arsansys.remapartners.data.repository.productos.ImageApiRest
+import com.arsansys.remapartners.data.repository.productos.ImageRepository
+import com.arsansys.remapartners.data.repository.productos.ProductosApiRest
+import com.arsansys.remapartners.data.repository.user.UserRetrofitInstance
+import com.arsansys.remapartners.data.service.ProductoServiceInstance
+import com.arsansys.remapartners.data.service.productos.ProductoService
+import com.arsansys.remapartners.data.service.productos.ProductoServiceImpl
 import com.arsansys.remapartners.data.util.ImageCache
-import com.google.android.gms.tasks.OnCompleteListener
-import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.launch
 import com.arsansys.remapartners.data.util.SessionManager
 import com.arsansys.remapartners.ui.navigation.Screen
@@ -117,7 +104,7 @@ fun HomeScreen(navController: NavController) {
     val coroutineScope = rememberCoroutineScope()
 
     val retrofit = UserRetrofitInstance.getRetrofitInstance(context)
-    val productosApi = retrofit.create(ProductosApiRest::class.java)
+    val productoService = ProductoServiceInstance.getInstance(context)
 
 
     val productos = remember { mutableStateListOf<ProductoEntity>() }
@@ -186,7 +173,7 @@ fun HomeScreen(navController: NavController) {
     LaunchedEffect(Unit) {
         isLoading = true
         try {
-            cargarProductos(productosApi, productos, context)
+            cargarProductos(productoService, productos, context)
             delay(200)
         } catch (e: Exception) {
             Log.e("HomeScreen", "Error cargando productos", e)
@@ -270,7 +257,7 @@ fun HomeScreen(navController: NavController) {
                 coroutineScope.launch {
                     isRefreshing = true
                     try {
-                        cargarProductos(productosApi, productos, context)
+                        cargarProductos(productoService, productos, context)
                     } finally {
                         delay(1000)
                         isRefreshing = false
@@ -831,30 +818,14 @@ fun shimmerBrush(showShimmer: Boolean = true, targetValue: Float = 1000f): Brush
 
 // Función para cargar productos
 private suspend fun cargarProductos(
-    productosApi: ProductosApiRest,
+    productoService: ProductoService,
     productos: MutableList<ProductoEntity>,
     context: Context
 ) {
     try {
-        val response = productosApi.getProductos()
-        if (response.isSuccessful) {
-            val productosResponse = response.body() ?: emptyList()
-            productos.clear()
-            productos.addAll(productosResponse)
-        } else if (response.code() == 401 || response.code() == 403) {
-            // El token ha expirado - El interceptor ya lo manejará
-            Toast.makeText(
-                context,
-                "Tu sesión ha expirado. Por favor, inicia sesión nuevamente.",
-                Toast.LENGTH_LONG
-            ).show()
-        } else {
-            Toast.makeText(
-                context,
-                "Error al obtener productos: ${response.message()}",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
+        val productosResponse = productoService.getProductos()
+        productos.clear()
+        productos.addAll(productosResponse)
     } catch (e: Exception) {
         Toast.makeText(
             context,

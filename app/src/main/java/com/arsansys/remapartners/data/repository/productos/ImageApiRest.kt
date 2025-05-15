@@ -1,4 +1,4 @@
-package com.arsansys.remapartners.data.repository
+package com.arsansys.remapartners.data.repository.productos
 
 import okhttp3.ResponseBody
 import retrofit2.Response

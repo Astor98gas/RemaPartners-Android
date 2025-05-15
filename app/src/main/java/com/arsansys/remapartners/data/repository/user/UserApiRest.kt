@@ -1,4 +1,4 @@
-package com.arsansys.remapartners.data.repository
+package com.arsansys.remapartners.data.repository.user
 
 import com.arsansys.remapartners.data.model.entities.UserEntity
 import com.arsansys.remapartners.data.model.firebase.Note

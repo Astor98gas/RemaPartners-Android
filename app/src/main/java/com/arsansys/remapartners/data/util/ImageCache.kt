@@ -3,7 +3,7 @@ package com.arsansys.remapartners.data.util
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.util.LruCache
-import com.arsansys.remapartners.data.repository.ImageRepository
+import com.arsansys.remapartners.data.repository.productos.ImageRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
