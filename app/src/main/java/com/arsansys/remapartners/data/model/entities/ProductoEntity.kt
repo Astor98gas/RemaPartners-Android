@@ -29,9 +29,9 @@ class ProductoEntity {
 
     internal val stock: Int? = null
 
-    private val fechaCreacion: String? = null
+    internal val fechaCreacion: String? = null
 
-    private val fechaActualizacion: String? = null
+    internal val fechaActualizacion: String? = null
 
     private val fechaPublicacion: String? = null
 

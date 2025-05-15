@@ -1,4 +1,4 @@
-package com.arsansys.remapartners.ui.screen
+package com.arsansys.remapartners.ui.screen.productos
 
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -85,11 +85,9 @@ import com.arsansys.remapartners.data.model.enums.EEstado
 import com.arsansys.remapartners.data.model.enums.EMoneda
 import com.arsansys.remapartners.data.repository.productos.ImageApiRest
 import com.arsansys.remapartners.data.repository.productos.ImageRepository
-import com.arsansys.remapartners.data.repository.productos.ProductosApiRest
 import com.arsansys.remapartners.data.repository.user.UserRetrofitInstance
 import com.arsansys.remapartners.data.service.ProductoServiceInstance
 import com.arsansys.remapartners.data.service.productos.ProductoService
-import com.arsansys.remapartners.data.service.productos.ProductoServiceImpl
 import com.arsansys.remapartners.data.util.ImageCache
 import kotlinx.coroutines.launch
 import com.arsansys.remapartners.data.util.SessionManager
@@ -455,7 +453,7 @@ fun HomeScreen(navController: NavController) {
                         modifier = Modifier.fillMaxSize()
                     ) {
                         items(productosFiltrados.size) { index ->
-                            ProductoCardCompact(producto = productosFiltrados[index])
+                            ProductoCardCompact(producto = productosFiltrados[index], navController)
                         }
                     }
                 }
@@ -466,14 +464,19 @@ fun HomeScreen(navController: NavController) {
 
 
 @Composable
-fun ProductoCardCompact(producto: ProductoEntity) {
+fun ProductoCardCompact(producto: ProductoEntity, navController: NavController) {
     // Versión compacta de la tarjeta para la vista de cuadrícula
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .height(300.dp), // Incrementamos ligeramente la altura para acomodar más información
         shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        onClick = {
+            navController.navigate(
+                Screen.ProductDetail.createRoute(producto.id.toString())
+            )
+        }
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Imagen con proporción 1:1
@@ -836,7 +839,7 @@ private suspend fun cargarProductos(
 }
 
 // Función para obtener nombre de categoría a partir de ID
-private fun obtenerNombreCategoria(categoriaId: String): String {
+internal fun obtenerNombreCategoria(categoriaId: String): String {
     // Aquí idealmente habría un mapeo real de IDs a nombres de categorías
     // Por ahora usaremos un mapeo ficticio
     return when (categoriaId) {
@@ -851,7 +854,7 @@ private fun obtenerNombreCategoria(categoriaId: String): String {
 
 
 // Función para formatear precio
-private fun formatearPrecio(precioCentimos: Int?, moneda: EMoneda?): String {
+internal fun formatearPrecio(precioCentimos: Int?, moneda: EMoneda?): String {
     if (precioCentimos == null) return "Precio no disponible"
 
     val precio = precioCentimos / 100.0

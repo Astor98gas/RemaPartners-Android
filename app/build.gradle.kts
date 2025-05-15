@@ -83,4 +83,7 @@ dependencies {
 
     implementation(libs.coil.compose)
 
+    implementation(libs.play.services.maps)
+    implementation(libs.android.maps.utils)
+
 }

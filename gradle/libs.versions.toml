@@ -1,5 +1,6 @@
 [versions]
 agp = "8.10.0"
+androidMapsUtils = "2.3.0"
 coilCompose = "2.5.0"
 converterGson = "2.9.0"
 firebaseBom = "33.12.0"
@@ -22,10 +23,12 @@ composeBom = "2024.09.00"
 materialIconsExtended = "1.7.8"
 navigationCompose = "2.8.9"
 navigationRuntimeKtx = "2.8.9"
+playServicesMaps = "19.2.0"
 retrofit = "2.9.0"
 supportAnnotations = "28.0.0"
 
 [libraries]
+android-maps-utils = { module = "com.google.maps.android:android-maps-utils", version.ref = "androidMapsUtils" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-lifecycle-viewmodel-ktx = { module = "androidx.lifecycle:lifecycle-viewmodel-ktx", version.ref = "lifecycleRuntimeKtx" }
 androidx-material-icons-extended = { module = "androidx.compose.material:material-icons-extended", version.ref = "materialIconsExtended" }
@@ -58,6 +61,7 @@ koin-android-v312 = { module = "io.insert-koin:koin-android", version.ref = "ins
 koin-android-v340 = { module = "io.insert-koin:koin-android", version.ref = "koinAndroidVersion" }
 androidx-navigation-runtime-ktx = { group = "androidx.navigation", name = "navigation-runtime-ktx", version.ref = "navigationRuntimeKtx" }
 koin-androidx-compose = { module = "io.insert-koin:koin-androidx-compose", version.ref = "koinAndroidxCompose" }
+play-services-maps = { module = "com.google.android.gms:play-services-maps", version.ref = "playServicesMaps" }
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 support-annotations = { group = "com.android.support", name = "support-annotations", version.ref = "supportAnnotations" }
 
