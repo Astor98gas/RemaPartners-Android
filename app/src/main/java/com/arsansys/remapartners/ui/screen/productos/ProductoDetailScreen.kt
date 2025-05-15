@@ -43,11 +43,13 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -296,70 +298,205 @@ fun ProductImageGallery(producto: ProductoEntity, context: Context) {
         producto.imagenes?.filterNotNull() ?: emptyList()
     }
 
-    var mainImageBytes by remember { mutableStateOf<ByteArray?>(null) }
+    // Estado para la imagen seleccionada actualmente
+    var selectedImageIndex by remember { mutableStateOf(0) }
+
+    // Estado para controlar la visualización a pantalla completa
+    var mostrarPantallaCompleta by remember { mutableStateOf(false) }
+
+    // Estado para los bytes de todas las imágenes cargadas
+    val imageBytesList = remember { mutableStateListOf<ByteArray?>() }
     var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(imageUrls) {
         if (imageUrls.isNotEmpty()) {
             isLoading = true
+            // Inicializar la lista con nulls para todas las imágenes
+            imageBytesList.clear()
+            repeat(imageUrls.size) {
+                imageBytesList.add(null)
+            }
+
+            // Cargar la primera imagen inmediatamente
             try {
-                mainImageBytes = imageCache.getImage(imageUrls.first())
+                val firstImageBytes = imageCache.getImage(imageUrls.first())
+                imageBytesList[0] = firstImageBytes
             } catch (e: Exception) {
-                Log.e("ProductImageGallery", "Error: ${e.message}")
+                Log.e("ProductImageGallery", "Error cargando primera imagen: ${e.message}")
             } finally {
                 isLoading = false
+            }
+
+            // Cargar el resto de imágenes en segundo plano
+            if (imageUrls.size > 1) {
+                for (i in 1 until imageUrls.size) {
+                    try {
+                        val bytes = imageCache.getImage(imageUrls[i])
+                        imageBytesList[i] = bytes
+                    } catch (e: Exception) {
+                        Log.e("ProductImageGallery", "Error cargando imagen ${i + 1}: ${e.message}")
+                    }
+                }
             }
         } else {
             isLoading = false
         }
     }
+    
 
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(300.dp),
-        shape = RoundedCornerShape(12.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        if (isLoading) {
-            Box(
-                modifier = Modifier.fillMaxSize(),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator()
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // Imagen principal
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(220.dp),
+            shape = RoundedCornerShape(12.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+            onClick = {
+                if (!isLoading && imageBytesList.getOrNull(selectedImageIndex) != null) {
+                    mostrarPantallaCompleta = true
+                }
             }
-        } else if (mainImageBytes != null) {
-            val bitmap = BitmapFactory.decodeByteArray(mainImageBytes, 0, mainImageBytes!!.size)
-            Image(
-                bitmap = bitmap.asImageBitmap(),
-                contentDescription = "Imagen de ${producto.titulo}",
-                contentScale = ContentScale.FillBounds,
-                modifier = Modifier.fillMaxSize()
-            )
-        } else {
-            // Placeholder
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center
+        ) {
+            if (isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else if (imageUrls.isEmpty() || imageBytesList.getOrNull(selectedImageIndex) == null) {
+                MostrarImagenError()
+            } else {
+
+                val currentImageBytes = imageBytesList[selectedImageIndex]!!
+                val bitmap = BitmapFactory.decodeByteArray(
+                    currentImageBytes, 0, currentImageBytes.size
+                )
+
+                if (bitmap != null) {
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = "Imagen ${selectedImageIndex + 1} de ${producto.titulo}",
+                        contentScale = ContentScale.Fit,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    MostrarImagenError()
+                }
+            }
+        }
+
+        // Miniaturas para navegación entre imágenes
+        if (imageUrls.size > 1) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Default.Image,
-                        contentDescription = "Sin imagen",
-                        modifier = Modifier.size(80.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                imageUrls.forEachIndexed { index, _ ->
+                    ImageThumbnail(
+                        imageBytes = imageBytesList.getOrNull(index),
+                        isSelected = index == selectedImageIndex,
+                        onThumbnailClick = { selectedImageIndex = index }
                     )
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    if (index < imageUrls.size - 1) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                }
+            }
+        }
+    }
+}
 
-                    Text(
-                        text = "No hay imágenes disponibles",
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ImageThumbnail(
+    imageBytes: ByteArray?,
+    isSelected: Boolean,
+    onThumbnailClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .size(50.dp),
+        shape = RoundedCornerShape(8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 4.dp else 1.dp),
+        border = if (isSelected) androidx.compose.foundation.BorderStroke(
+            2.dp,
+            MaterialTheme.colorScheme.primary
+        ) else null,
+        onClick = onThumbnailClick
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            if (imageBytes != null) {
+                val options = BitmapFactory.Options().apply {
+                    inSampleSize = 8
+                    inPreferredConfig = android.graphics.Bitmap.Config.RGB_565
+                }
+
+                val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size, options)
+
+                if (bitmap != null) {
+                    Image(
+                        bitmap = bitmap.asImageBitmap(),
+                        contentDescription = "Miniatura",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.Image,
+                        contentDescription = "Error miniatura",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        strokeWidth = 2.dp
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun MostrarImagenError() {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                imageVector = Icons.Default.Image,
+                contentDescription = "Sin imagen",
+                modifier = Modifier.size(40.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "No se pudo cargar la imagen",
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 16.dp)
+            )
         }
     }
 }
@@ -414,9 +551,22 @@ fun DetailRow(
 @Composable
 fun LocationMap(direccion: String, context: Context) {
     var mapViewInitialized by remember { mutableStateOf(false) }
+    var location by remember { mutableStateOf<Pair<Double, Double>?>(null) }
+    var isLoadingLocation by remember { mutableStateOf(true) }
 
-    // Para simplificar, generamos unas coordenadas aproximadas a partir del nombre de la ciudad
-    val location = convertirDireccionALatLng(direccion, context)
+    // Cargar las coordenadas en un efecto lanzado
+    LaunchedEffect(direccion) {
+        isLoadingLocation = true
+        try {
+            location = convertirDireccionALatLng(direccion, context)
+        } catch (e: Exception) {
+            Log.e("LocationMap", "Error obteniendo ubicación: ${e.message}")
+            // Usar Madrid como ubicación predeterminada
+            location = Pair(40.416775, -3.703790)
+        } finally {
+            isLoadingLocation = false
+        }
+    }
 
     Box(
         modifier = Modifier
@@ -424,47 +574,65 @@ fun LocationMap(direccion: String, context: Context) {
             .height(200.dp)
             .background(Color.Gray.copy(alpha = 0.2f))
     ) {
-        AndroidView(
-            factory = { context ->
-                MapView(context).apply {
-                    onCreate(null)
-                    onResume()
-                    getMapAsync { googleMap ->
-                        val position = LatLng(location.first, location.second)
-                        googleMap.addMarker(
-                            MarkerOptions()
-                                .position(position)
-                                .title(direccion)
-                        )
-                        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(position, 12f))
-                        mapViewInitialized = true
-                    }
-                }
-            },
-            modifier = Modifier.fillMaxSize()
-        )
-
-        if (!mapViewInitialized) {
+        if (isLoadingLocation) {
+            // Mostrar loading mientras se obtiene la ubicación
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator()
             }
-        }
+        } else {
+            AndroidView(
+                factory = { ctx ->
+                    MapView(ctx).apply {
+                        onCreate(null)
+                        onResume()
+                        getMapAsync { googleMap ->
+                            location?.let {
+                                val position = LatLng(it.first, it.second)
+                                googleMap.clear() // Limpiar marcadores previos
+                                googleMap.addMarker(
+                                    MarkerOptions()
+                                        .position(position)
+                                        .title(direccion)
+                                )
+                                googleMap.moveCamera(
+                                    CameraUpdateFactory.newLatLngZoom(
+                                        position,
+                                        12f
+                                    )
+                                )
+                                mapViewInitialized = true
+                            }
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
 
-        // Marca de ubicación
-        Text(
-            text = direccion,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
-                .padding(8.dp)
-        )
+            if (!mapViewInitialized && !isLoadingLocation) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            }
+
+            // Etiqueta de la ubicación
+            Text(
+                text = direccion,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f))
+                    .padding(8.dp)
+            )
+        }
     }
 }
 
@@ -495,13 +663,31 @@ private fun convertirDireccionALatLng(direccion: String, context: Context): Pair
 }
 
 // Función para formatear fecha
-private fun formatearFecha(timestamp: String): String {
+private fun formatearFecha(timestamp: Any?): String {
+    if (timestamp == null) return "Fecha desconocida"
+
     try {
-        val timestampLong = timestamp.toLong()
-        val fecha = Date(timestampLong)
+        val fecha = when (timestamp) {
+            is Long -> Date(timestamp)
+            is String -> {
+                try {
+                    // Intenta convertir a Long primero
+                    Date(timestamp.toLong())
+                } catch (e: Exception) {
+                    // Si falla, intenta parsear como fecha ISO
+                    SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault()).parse(timestamp)
+                        ?: throw Exception("Formato de fecha no reconocido")
+                }
+            }
+
+            is Date -> timestamp
+            else -> throw Exception("Tipo de fecha no soportado")
+        }
+
         val formato = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
         return formato.format(fecha)
     } catch (e: Exception) {
-        return "Fecha desconocida"
+        Log.e("formatearFecha", "Error formateando fecha: ${e.message}")
+        return "Fecha inválida"
     }
 }
