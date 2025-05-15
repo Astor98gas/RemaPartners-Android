@@ -1,13 +1,17 @@
 package com.arsansys.remapartners.ui.screen.productos
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.location.Geocoder
 import android.util.Log
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -45,11 +49,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -62,11 +68,15 @@ import com.arsansys.remapartners.data.repository.productos.ImageApiRest
 import com.arsansys.remapartners.data.repository.productos.ImageRepository
 import com.arsansys.remapartners.data.repository.user.RetrofitInstance
 import com.arsansys.remapartners.data.service.ProductoServiceInstance
+import com.arsansys.remapartners.data.service.categorias.CategoriaService
+import com.arsansys.remapartners.data.service.categorias.CategoriaServiceInstance
 import com.arsansys.remapartners.data.util.ImageCache
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.MapView
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -76,6 +86,7 @@ import java.util.Locale
 fun ProductoDetailScreen(navController: NavController, productoId: String) {
     val context = LocalContext.current
     val productoService = ProductoServiceInstance.getInstance(context)
+    val categoriaService = CategoriaServiceInstance.getInstance(context)
 
     var producto by remember { mutableStateOf<ProductoEntity?>(null) }
     var isLoading by remember { mutableStateOf(true) }
@@ -128,7 +139,7 @@ fun ProductoDetailScreen(navController: NavController, productoId: String) {
                 Text("No se pudo cargar el producto")
             }
         } else {
-            ProductoDetailContent(producto!!, context, paddingValues)
+            ProductoDetailContent(producto!!, context, paddingValues, categoriaService)
         }
     }
 }
@@ -137,9 +148,30 @@ fun ProductoDetailScreen(navController: NavController, productoId: String) {
 fun ProductoDetailContent(
     producto: ProductoEntity,
     context: Context,
-    paddingValues: androidx.compose.foundation.layout.PaddingValues
-) {
+    paddingValues: PaddingValues,
+    categoriaService: CategoriaService,
+
+    ) {
     val scrollState = rememberScrollState()
+
+    // Categoría
+    val coroutineScope = rememberCoroutineScope()
+    var nombreCategoria by remember { mutableStateOf("Cargando...") }
+
+// Carga el nombre de la categoría cuando el producto cambie
+    LaunchedEffect(producto.idCategoria) {
+        producto.idCategoria?.let { categoriaId ->
+            coroutineScope.launch {
+                nombreCategoria = obtenerNombreCategoria(
+                    categoriaId,
+                    categoriaService,
+                    context
+                )
+            }
+        } ?: run {
+            nombreCategoria = "Sin categoría"
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -221,7 +253,7 @@ fun ProductoDetailContent(
         DetailRow(
             icon = Icons.Default.Category,
             label = "Categoría",
-            value = producto.idCategoria?.let { obtenerNombreCategoria(it) } ?: "Sin categoría"
+            value = nombreCategoria
         )
 
         // Marca
@@ -422,7 +454,7 @@ private fun ImageThumbnail(
             .size(50.dp),
         shape = RoundedCornerShape(8.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = if (isSelected) 4.dp else 1.dp),
-        border = if (isSelected) androidx.compose.foundation.BorderStroke(
+        border = if (isSelected) BorderStroke(
             2.dp,
             MaterialTheme.colorScheme.primary
         ) else null,
@@ -435,7 +467,7 @@ private fun ImageThumbnail(
             if (imageBytes != null) {
                 val options = BitmapFactory.Options().apply {
                     inSampleSize = 8
-                    inPreferredConfig = android.graphics.Bitmap.Config.RGB_565
+                    inPreferredConfig = Bitmap.Config.RGB_565
                 }
 
                 val bitmap = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.size, options)
@@ -501,7 +533,7 @@ private fun MostrarImagenError() {
 
 @Composable
 fun DetailRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector?,
+    icon: ImageVector?,
     label: String,
     value: String
 ) {
@@ -641,7 +673,7 @@ private fun convertirDireccionALatLng(direccion: String, context: Context): Pair
     var longitud = -3.703790
 
     try {
-        val geocoder = android.location.Geocoder(context, Locale.getDefault())
+        val geocoder = Geocoder(context, Locale.getDefault())
 
         // Obtenemos resultados de geocodificación (limitados a 1)
         val resultados = geocoder.getFromLocationName(direccion, 1)

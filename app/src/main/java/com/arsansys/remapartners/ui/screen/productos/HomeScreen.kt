@@ -80,6 +80,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import androidx.navigation.NavController
+import com.arsansys.remapartners.data.model.entities.CategoriaEntity
 import com.arsansys.remapartners.data.model.entities.ProductoEntity
 import com.arsansys.remapartners.data.model.enums.EEstado
 import com.arsansys.remapartners.data.model.enums.EMoneda
@@ -87,11 +88,15 @@ import com.arsansys.remapartners.data.repository.productos.ImageApiRest
 import com.arsansys.remapartners.data.repository.productos.ImageRepository
 import com.arsansys.remapartners.data.repository.user.RetrofitInstance
 import com.arsansys.remapartners.data.service.ProductoServiceInstance
+import com.arsansys.remapartners.data.service.categorias.CategoriaService
+import com.arsansys.remapartners.data.service.categorias.CategoriaServiceImpl
+import com.arsansys.remapartners.data.service.categorias.CategoriaServiceInstance
 import com.arsansys.remapartners.data.service.productos.ProductoService
 import com.arsansys.remapartners.data.util.ImageCache
 import kotlinx.coroutines.launch
 import com.arsansys.remapartners.data.util.SessionManager
 import com.arsansys.remapartners.ui.navigation.Screen
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -103,6 +108,7 @@ fun HomeScreen(navController: NavController) {
 
     val retrofit = RetrofitInstance.getRetrofitInstance(context)
     val productoService = ProductoServiceInstance.getInstance(context)
+    val categoriaService = CategoriaServiceInstance.getInstance(context)
 
 
     val productos = remember { mutableStateListOf<ProductoEntity>() }
@@ -453,7 +459,11 @@ fun HomeScreen(navController: NavController) {
                         modifier = Modifier.fillMaxSize()
                     ) {
                         items(productosFiltrados.size) { index ->
-                            ProductoCardCompact(producto = productosFiltrados[index], navController)
+                            ProductoCardCompact(
+                                producto = productosFiltrados[index],
+                                navController,
+                                context
+                            )
                         }
                     }
                 }
@@ -464,7 +474,7 @@ fun HomeScreen(navController: NavController) {
 
 
 @Composable
-fun ProductoCardCompact(producto: ProductoEntity, navController: NavController) {
+fun ProductoCardCompact(producto: ProductoEntity, navController: NavController, context: Context) {
     // Versión compacta de la tarjeta para la vista de cuadrícula
     Card(
         modifier = Modifier
@@ -511,8 +521,18 @@ fun ProductoCardCompact(producto: ProductoEntity, navController: NavController) 
 
                 // Categoría (nuevo)
                 producto.idCategoria?.let { categoriaId ->
+                    var nombreCategoria by remember { mutableStateOf("Cargando...") }
+
+                    LaunchedEffect(categoriaId) {
+                        nombreCategoria = obtenerNombreCategoria(
+                            categoriaId,
+                            CategoriaServiceInstance.getInstance(context),
+                            context
+                        )
+                    }
+
                     Text(
-                        text = "Categoría: ${obtenerNombreCategoria(categoriaId)}",
+                        text = "Categoría: $nombreCategoria",
                         fontSize = 12.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
@@ -839,16 +859,19 @@ private suspend fun cargarProductos(
 }
 
 // Función para obtener nombre de categoría a partir de ID
-internal fun obtenerNombreCategoria(categoriaId: String): String {
-    // Aquí idealmente habría un mapeo real de IDs a nombres de categorías
-    // Por ahora usaremos un mapeo ficticio
-    return when (categoriaId) {
-        "1" -> "Electrónica"
-        "2" -> "Moda"
-        "3" -> "Hogar"
-        "4" -> "Deportes"
-        "5" -> "Juguetes"
-        else -> "Otros"
+internal suspend fun obtenerNombreCategoria(
+    categoriaId: String,
+    categoriaService: CategoriaService,
+    context: Context
+): String {
+    return coroutineScope {
+        try {
+            val categoria: CategoriaEntity = categoriaService.getCategoriaById(categoriaId)
+            categoria.titulo ?: "Sin categoría"
+        } catch (e: Exception) {
+            Log.e("HomeScreen", "Error obteniendo categoría: ${e.message}")
+            "Sin categoría"
+        }
     }
 }
 
@@ -862,6 +885,13 @@ internal fun formatearPrecio(precioCentimos: Int?, moneda: EMoneda?): String {
         EMoneda.EUR -> "€"
         EMoneda.USD -> "$"
         EMoneda.GBP -> "£"
+        EMoneda.JPY -> "¥"
+        EMoneda.CNY -> "¥"
+        EMoneda.INR -> "₹"
+        EMoneda.RUB -> "₽"
+        EMoneda.BRL -> "R$"
+        EMoneda.ARS -> "$"
+        EMoneda.CLP -> "$"
         else -> "€"
     }
 
