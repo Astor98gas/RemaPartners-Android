@@ -2,6 +2,7 @@ package com.arsansys.remapartners.ui.screen.productos
 
 import android.content.Context
 import android.graphics.BitmapFactory
+import android.location.Geocoder
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -415,7 +416,7 @@ fun LocationMap(direccion: String, context: Context) {
     var mapViewInitialized by remember { mutableStateOf(false) }
 
     // Para simplificar, generamos unas coordenadas aproximadas a partir del nombre de la ciudad
-    val location = convertirDireccionALatLng(direccion)
+    val location = convertirDireccionALatLng(direccion, context)
 
     Box(
         modifier = Modifier
@@ -468,24 +469,29 @@ fun LocationMap(direccion: String, context: Context) {
 }
 
 // Función para convertir una dirección (ciudad) a coordenadas
-private fun convertirDireccionALatLng(direccion: String): Pair<Double, Double> {
-    // Mapa ficticio de ciudades y sus coordenadas
-    val coordenadasCiudades = mapOf(
-        "Madrid" to Pair(40.416775, -3.703790),
-        "Barcelona" to Pair(41.385064, 2.173403),
-        "Valencia" to Pair(39.469907, -0.376288),
-        "Sevilla" to Pair(37.389092, -5.984459),
-        "Zaragoza" to Pair(41.648823, -0.889085),
-        "Málaga" to Pair(36.721261, -4.421266),
-        "Murcia" to Pair(37.992235, -1.130654),
-        "Palma" to Pair(39.569600, 2.650160)
-    )
+private fun convertirDireccionALatLng(direccion: String, context: Context): Pair<Double, Double> {
+    // Coordenadas por defecto (Madrid) en caso de error
+    var latitud = 40.416775
+    var longitud = -3.703790
 
-    // Extraemos el nombre de la ciudad de la dirección
-    val ciudad = direccion.split(",").firstOrNull()?.trim() ?: ""
+    try {
+        val geocoder = android.location.Geocoder(context, Locale.getDefault())
 
-    // Devolvemos las coordenadas si existen, o unas por defecto para España
-    return coordenadasCiudades[ciudad] ?: Pair(40.416775, -3.703790) // Madrid por defecto
+        // Obtenemos resultados de geocodificación (limitados a 1)
+        val resultados = geocoder.getFromLocationName(direccion, 1)
+
+        if (!resultados.isNullOrEmpty()) {
+            val primerResultado = resultados[0]
+            latitud = primerResultado.latitude
+            longitud = primerResultado.longitude
+        } else {
+            Log.d("Geocoder", "No se encontraron coordenadas para: $direccion")
+        }
+    } catch (e: Exception) {
+        Log.e("Geocoder", "Error obteniendo coordenadas: ${e.message}")
+    }
+
+    return Pair(latitud, longitud)
 }
 
 // Función para formatear fecha
