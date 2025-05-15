@@ -2,7 +2,6 @@ package com.arsansys.remapartners.ui.screen.productos
 
 import android.content.Context
 import android.graphics.BitmapFactory
-import android.location.Geocoder
 import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -49,7 +48,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
@@ -62,7 +60,7 @@ import androidx.navigation.NavController
 import com.arsansys.remapartners.data.model.entities.ProductoEntity
 import com.arsansys.remapartners.data.repository.productos.ImageApiRest
 import com.arsansys.remapartners.data.repository.productos.ImageRepository
-import com.arsansys.remapartners.data.repository.user.UserRetrofitInstance
+import com.arsansys.remapartners.data.repository.user.RetrofitInstance
 import com.arsansys.remapartners.data.service.ProductoServiceInstance
 import com.arsansys.remapartners.data.util.ImageCache
 import com.google.android.gms.maps.CameraUpdateFactory
@@ -289,7 +287,7 @@ fun ProductImageGallery(producto: ProductoEntity, context: Context) {
     val imageCache = remember {
         ImageCache(
             ImageRepository(
-                UserRetrofitInstance.getRetrofitInstance(context).create(ImageApiRest::class.java)
+                RetrofitInstance.getRetrofitInstance(context).create(ImageApiRest::class.java)
             )
         )
     }
@@ -342,7 +340,7 @@ fun ProductImageGallery(producto: ProductoEntity, context: Context) {
             isLoading = false
         }
     }
-    
+
 
     Column(modifier = Modifier.fillMaxWidth()) {
         // Imagen principal

@@ -85,7 +85,7 @@ import com.arsansys.remapartners.data.model.enums.EEstado
 import com.arsansys.remapartners.data.model.enums.EMoneda
 import com.arsansys.remapartners.data.repository.productos.ImageApiRest
 import com.arsansys.remapartners.data.repository.productos.ImageRepository
-import com.arsansys.remapartners.data.repository.user.UserRetrofitInstance
+import com.arsansys.remapartners.data.repository.user.RetrofitInstance
 import com.arsansys.remapartners.data.service.ProductoServiceInstance
 import com.arsansys.remapartners.data.service.productos.ProductoService
 import com.arsansys.remapartners.data.util.ImageCache
@@ -101,7 +101,7 @@ fun HomeScreen(navController: NavController) {
     val sessionManager = remember { SessionManager(context) }
     val coroutineScope = rememberCoroutineScope()
 
-    val retrofit = UserRetrofitInstance.getRetrofitInstance(context)
+    val retrofit = RetrofitInstance.getRetrofitInstance(context)
     val productoService = ProductoServiceInstance.getInstance(context)
 
 
@@ -567,7 +567,7 @@ fun ProductImageWithStatus(producto: ProductoEntity, modifier: Modifier = Modifi
     val imageCache = remember {
         ImageCache(
             ImageRepository(
-                UserRetrofitInstance.getRetrofitInstance(context).create(ImageApiRest::class.java)
+                RetrofitInstance.getRetrofitInstance(context).create(ImageApiRest::class.java)
             )
         )
     }

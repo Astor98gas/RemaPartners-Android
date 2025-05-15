@@ -8,7 +8,7 @@ import retrofit2.Response
 class AuthRepository(private val context: Context) {
 
     private val apiService =
-        UserRetrofitInstance.getRetrofitInstance(context).create(UserApiRest::class.java)
+        RetrofitInstance.getRetrofitInstance(context).create(UserApiRest::class.java)
 
     suspend fun login(email: String, password: String): Response<LoginResponse> {
         return apiService.login(LoginRequest(email, password))
