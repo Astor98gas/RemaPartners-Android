@@ -1,6 +1,6 @@
-package com.arsansys.remapartners.data.model.entities
+package com.arsansys.remapartners.data.model.dto
 
-class UserEntity {
+class UserDto {
 
     internal val id: String? = null
 
@@ -12,7 +12,7 @@ class UserEntity {
 
     internal val active = true
 
-    internal var rol: RolEntity = RolEntity()
+    internal var rol: String? = null
 
     internal var googleTokens: String? = null
 

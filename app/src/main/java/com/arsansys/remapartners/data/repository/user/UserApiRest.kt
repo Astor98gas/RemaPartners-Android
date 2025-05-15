@@ -1,5 +1,6 @@
 package com.arsansys.remapartners.data.repository.user
 
+import com.arsansys.remapartners.data.model.dto.UserDto
 import com.arsansys.remapartners.data.model.entities.UserEntity
 import com.arsansys.remapartners.data.model.firebase.Note
 import com.arsansys.remapartners.data.model.login.LoginRequest
@@ -21,6 +22,6 @@ interface UserApiRest {
     suspend fun login(@Body LoginRequest: LoginRequest): Response<LoginResponse>
 
     @POST("createUser")
-    suspend fun createUser(@Body user: UserEntity): Response<LoginResponse>
+    suspend fun createUser(@Body userDto: UserDto): Response<LoginResponse>
 
 }

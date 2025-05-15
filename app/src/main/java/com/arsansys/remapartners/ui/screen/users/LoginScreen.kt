@@ -1,4 +1,4 @@
-package com.arsansys.remapartners.ui.screen
+package com.arsansys.remapartners.ui.screen.users
 
 import android.util.Log
 import android.widget.Toast
@@ -62,8 +62,6 @@ import com.arsansys.remapartners.R
 import com.arsansys.remapartners.data.repository.user.AuthRepository
 import com.arsansys.remapartners.data.util.SessionManager
 import com.arsansys.remapartners.ui.navigation.Screen
-import com.google.android.gms.tasks.Tasks.await
-import com.google.firebase.Firebase
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -305,6 +303,19 @@ fun LoginScreen(navController: NavController) {
                             fontWeight = FontWeight.Bold
                         )
                     }
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // Enlace para ir a registro
+                    Text(
+                        text = "¿No tienes cuenta? Regístrate",
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .clickable {
+                                navController.navigate(Screen.Registro.route)
+                            }
+                            .padding(8.dp),
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
         }

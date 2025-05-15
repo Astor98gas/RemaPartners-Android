@@ -7,8 +7,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.arsansys.remapartners.ui.screen.productos.HomeScreen
-import com.arsansys.remapartners.ui.screen.LoginScreen
+import com.arsansys.remapartners.ui.screen.users.LoginScreen
 import com.arsansys.remapartners.ui.screen.productos.ProductoDetailScreen
+import com.arsansys.remapartners.ui.screen.users.RegistroScreen
 
 sealed class Screen(val route: String) {
     data object Home : Screen("home")
@@ -16,6 +17,8 @@ sealed class Screen(val route: String) {
     data object ProductDetail : Screen("product_detail/{id}") {
         fun createRoute(id: String) = "product_detail/$id"
     }
+
+    data object Registro : Screen("registro")
 }
 
 @Composable
@@ -36,6 +39,8 @@ fun AppNavigation(navController: NavHostController) {
                 ProductoDetailScreen(navController, id)
             }
         }
-
+        composable(Screen.Registro.route) {
+            RegistroScreen(navController)
+        }
     }
 }
