@@ -20,4 +20,7 @@ interface UserApiRest {
     @POST("login")
     suspend fun login(@Body LoginRequest: LoginRequest): Response<LoginResponse>
 
+    @POST("createUser")
+    suspend fun createUser(@Body user: UserEntity): Response<LoginResponse>
+
 }

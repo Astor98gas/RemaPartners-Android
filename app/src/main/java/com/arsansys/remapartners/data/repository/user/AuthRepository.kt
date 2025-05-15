@@ -10,8 +10,12 @@ class AuthRepository(private val context: Context) {
     private val apiService =
         RetrofitInstance.getRetrofitInstance(context).create(UserApiRest::class.java)
 
-    suspend fun login(email: String, password: String): Response<LoginResponse> {
-        return apiService.login(LoginRequest(email, password))
+    suspend fun login(
+        email: String,
+        password: String,
+        googleToken: String
+    ): Response<LoginResponse> {
+        return apiService.login(LoginRequest(email, password, googleToken))
     }
 
 }

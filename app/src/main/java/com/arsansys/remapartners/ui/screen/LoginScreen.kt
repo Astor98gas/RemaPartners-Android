@@ -62,7 +62,11 @@ import com.arsansys.remapartners.R
 import com.arsansys.remapartners.data.repository.user.AuthRepository
 import com.arsansys.remapartners.data.util.SessionManager
 import com.arsansys.remapartners.ui.navigation.Screen
+import com.google.android.gms.tasks.Tasks.await
+import com.google.firebase.Firebase
+import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -245,13 +249,17 @@ fun LoginScreen(navController: NavController) {
                                 errorMessage = null
                                 try {
                                     val authRepository = AuthRepository(context)
-                                    val response = authRepository.login(username, password)
+                                    val token = getFirebaseToken()
+
+                                    val response = authRepository.login(
+                                        username,
+                                        password,
+                                        token
+                                    )
 
                                     if (response.isSuccessful && response.body() != null) {
                                         val loginResponse = response.body()!!
                                         val token = loginResponse.token
-
-                                        Log.d("LoginScreen", "Token: $token")
 
                                         // Guardar el token en SessionManager
                                         sessionManager.saveAuthToken(loginResponse.token)
@@ -297,6 +305,22 @@ fun LoginScreen(navController: NavController) {
                             fontWeight = FontWeight.Bold
                         )
                     }
+                }
+            }
+        }
+    }
+}
+
+private suspend fun getFirebaseToken(): String {
+    return suspendCancellableCoroutine { continuation ->
+        FirebaseMessaging.getInstance().token.addOnCompleteListener { task ->
+            if (task.isSuccessful) {
+                continuation.resume(task.result) { throwable ->
+                    Log.e("FirebaseToken", "Token retrieval was cancelled", throwable)
+                }
+            } else {
+                continuation.resume("") { throwable ->
+                    Log.e("FirebaseToken", "Token retrieval was cancelled", throwable)
                 }
             }
         }
