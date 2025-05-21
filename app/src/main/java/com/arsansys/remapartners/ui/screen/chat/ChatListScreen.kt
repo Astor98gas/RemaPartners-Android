@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -360,6 +361,8 @@ fun ChatDetailScreen(
         )
     }
 
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
+
     // Cargar el chat al iniciar
     LaunchedEffect(chatId, productId) {
         if (chatId.isNotEmpty()) {
@@ -417,6 +420,7 @@ fun ChatDetailScreen(
     }
 
     Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
                 title = {
@@ -443,7 +447,6 @@ fun ChatDetailScreen(
                     }
                 },
                 actions = {
-                    // Botón para ver detalles del producto
                     IconButton(onClick = {
                         chat?.idProducto?.let { productId ->
                             navController.navigate(Screen.ProductDetail.createRoute(productId))
@@ -454,7 +457,11 @@ fun ChatDetailScreen(
                             contentDescription = "Ver producto"
                         )
                     }
-                }
+                },
+                scrollBehavior = scrollBehavior,
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                )
             )
         },
         bottomBar = {

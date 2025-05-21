@@ -13,6 +13,12 @@ class SessionManager(context: Context) {
         const val USERNAME = "username"
     }
 
+    fun clearAuthToken() {
+        val editor = prefs.edit()
+        editor.remove(USER_TOKEN)
+        editor.apply()
+    }
+
     fun saveAuthToken(token: String) {
         val editor = prefs.edit()
         editor.putString(USER_TOKEN, token)
