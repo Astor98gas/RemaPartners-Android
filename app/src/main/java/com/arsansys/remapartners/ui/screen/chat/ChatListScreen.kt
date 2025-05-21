@@ -1,6 +1,5 @@
 package com.arsansys.remapartners.ui.screen.chat
 
-import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -10,7 +9,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -31,6 +29,7 @@ import com.arsansys.remapartners.data.model.entities.ChatEntity
 import com.arsansys.remapartners.data.model.entities.MensajeEntity
 import com.arsansys.remapartners.data.repository.RetrofitInstance
 import com.arsansys.remapartners.data.repository.chat.ChatApiRest
+import com.arsansys.remapartners.data.repository.user.UserApiRest
 import com.arsansys.remapartners.data.service.chat.ChatServiceImpl
 import com.arsansys.remapartners.data.util.SessionManager
 import com.arsansys.remapartners.ui.navigation.Screen
@@ -44,8 +43,6 @@ fun ChatsListScreen(navController: NavController) {
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
     val userId = sessionManager.fetchUserId()
-
-    Log.d("ChatsScreen", "ID del usuario actual: $userId")
 
     var chats by remember { mutableStateOf<List<ChatEntity>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
@@ -62,43 +59,22 @@ fun ChatsListScreen(navController: NavController) {
         if (userId != null) {
             try {
                 isLoading = true
-                Log.d("ChatsScreen", "Cargando chats para usuario: $userId")
 
                 // Cargar chats donde el usuario es comprador
                 val buyerChatsResponse = chatService.getByBuyerId(userId)
-                Log.d(
-                    "ChatsScreen",
-                    "Respuesta chats como comprador - Código: ${buyerChatsResponse.code()}"
-                )
 
                 // Cargar chats donde el usuario es vendedor
                 val sellerChatsResponse = chatService.getBySellerId(userId)
-                Log.d(
-                    "ChatsScreen",
-                    "Respuesta chats como vendedor - Código: ${sellerChatsResponse.code()}"
-                )
 
                 val buyerChats = if (buyerChatsResponse.isSuccessful) {
                     buyerChatsResponse.body() ?: emptyList()
                 } else {
-                    Log.e(
-                        "ChatsScreen",
-                        "Error al cargar chats como comprador: ${
-                            buyerChatsResponse.errorBody()?.string()
-                        }"
-                    )
                     emptyList()
                 }
 
                 val sellerChats = if (sellerChatsResponse.isSuccessful) {
                     sellerChatsResponse.body() ?: emptyList()
                 } else {
-                    Log.e(
-                        "ChatsScreen",
-                        "Error al cargar chats como vendedor: ${
-                            sellerChatsResponse.errorBody()?.string()
-                        }"
-                    )
                     emptyList()
                 }
 
@@ -107,9 +83,7 @@ fun ChatsListScreen(navController: NavController) {
                     it.ultimaActualizacion ?: it.fechaCreacion
                 }
 
-                Log.d("ChatsScreen", "Total de chats cargados: ${chats.size}")
             } catch (e: Exception) {
-                Log.e("ChatsScreen", "Error al cargar los chats", e)
                 error = "Error al cargar los chats: ${e.message}"
             } finally {
                 isLoading = false
@@ -220,8 +194,7 @@ fun ChatsListScreen(navController: NavController) {
                                 },
                                 onProductClick = {
                                     navController.navigate(
-                                        Screen.ProductDetail.route +
-                                                "?id=${chat.idProducto}"
+                                        Screen.ProductDetail.createRoute(chat.idProducto.toString())
                                     )
                                 }
                             )
@@ -244,6 +217,33 @@ fun ChatItem(
     val isCurrentUserSeller = chat.idVendedor == currentUserId
     val otherPersonId = if (isCurrentUserSeller) chat.idComprador else chat.idVendedor
 
+    // Estado para almacenar los datos del usuario
+    var nombreUsuario by remember { mutableStateOf("Cargando...") }
+    val context = LocalContext.current
+
+    // Cargar los datos del usuario
+    LaunchedEffect(otherPersonId) {
+        try {
+            // Acceso al servicio de usuarios
+            val userApiRest =
+                RetrofitInstance.getRetrofitInstance(context).create(UserApiRest::class.java)
+
+            // Obtener información del usuario
+            val response = userApiRest.getUserById(otherPersonId.toString()!!)
+            if (response.isSuccessful && response.body() != null) {
+                val usuario = response.body()!!
+                nombreUsuario = when {
+                    !usuario.username.isNullOrEmpty() -> usuario.username
+                    else -> if (isCurrentUserSeller) "Comprador" else "Vendedor"
+                }.toString()
+            } else {
+                nombreUsuario = if (isCurrentUserSeller) "Comprador" else "Vendedor"
+            }
+        } catch (e: Exception) {
+            nombreUsuario = if (isCurrentUserSeller) "Comprador" else "Vendedor"
+            android.util.Log.e("ChatItem", "Error al obtener usuario: ${e.message}")
+        }
+    }
 
     Card(
         modifier = Modifier
@@ -259,24 +259,6 @@ fun ChatItem(
                 .padding(16.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Avatar o imagen del producto
-            Box(
-                modifier = Modifier
-                    .size(50.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant)
-            ) {
-                // Aquí podría ir una imagen de perfil o del producto
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data("https://via.placeholder.com/50") // Placeholder por ahora
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = "Imagen de chat",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
 
             Spacer(modifier = Modifier.width(16.dp))
 
@@ -285,14 +267,14 @@ fun ChatItem(
                 modifier = Modifier.weight(1f)
             ) {
                 Text(
-                    text = if (isCurrentUserSeller) "Chat con Comprador" else "Chat con Vendedor",
+                    text = "Chat con $nombreUsuario",
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
 
-                // Mostrar último mensaje o "Sin mensajes"
+                // Resto del código sigue igual
                 lastMessage?.let { message ->
                     Text(
                         text = message.mensaje ?: "",
@@ -309,8 +291,6 @@ fun ChatItem(
                     fontSize = 14.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-
-                // Fecha del último mensaje
             }
 
             Spacer(modifier = Modifier.width(8.dp))
@@ -391,8 +371,7 @@ fun ChatDetailScreen(
                     // Botón para ver el producto
                     IconButton(onClick = {
                         navController.navigate(
-                            Screen.ProductDetail.route +
-                                    "?id=$productId"
+                            Screen.ProductDetail.createRoute(productId!!)
                         )
                     }) {
                         Icon(
@@ -559,8 +538,6 @@ fun MessageItem(
         val fechaHora = LocalDateTime.parse(message.fecha)
         fechaHora.format(dateFormatter)
     } catch (e: Exception) {
-        Log.e("ChatScreen", "Error al formatear fecha: ${e.message}")
-        // Si falla, mostrar la fecha como viene o un valor por defecto
         message.fecha.split("T").getOrNull(1)?.substring(0, 5) ?: "00:00"
     }
 

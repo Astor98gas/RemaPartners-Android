@@ -9,6 +9,7 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.Path
 
 interface UserApiRest {
 
@@ -24,4 +25,6 @@ interface UserApiRest {
     @POST("createUser")
     suspend fun createUser(@Body userDto: UserDto): Response<LoginResponse>
 
+    @GET("getUserById/{id}")
+    suspend fun getUserById(@Path("id") id: String): Response<UserEntity>
 }
