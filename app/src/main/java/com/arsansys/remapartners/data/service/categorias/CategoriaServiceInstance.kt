@@ -2,7 +2,7 @@ package com.arsansys.remapartners.data.service.categorias
 
 import android.content.Context
 import com.arsansys.remapartners.data.repository.productos.CategoriaApiRest
-import com.arsansys.remapartners.data.repository.user.RetrofitInstance
+import com.arsansys.remapartners.data.repository.RetrofitInstance
 
 object CategoriaServiceInstance {
     private var instance: CategoriaService? = null

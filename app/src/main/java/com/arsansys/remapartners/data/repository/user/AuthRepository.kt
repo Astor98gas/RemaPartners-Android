@@ -5,6 +5,7 @@ import com.arsansys.remapartners.data.model.dto.UserDto
 import com.arsansys.remapartners.data.model.entities.UserEntity
 import com.arsansys.remapartners.data.model.login.LoginRequest
 import com.arsansys.remapartners.data.model.login.LoginResponse
+import com.arsansys.remapartners.data.repository.RetrofitInstance
 import retrofit2.Response
 
 class AuthRepository(private val context: Context) {
@@ -13,11 +14,11 @@ class AuthRepository(private val context: Context) {
         RetrofitInstance.getRetrofitInstance(context).create(UserApiRest::class.java)
 
     suspend fun login(
-        email: String,
+        username: String,
         password: String,
         googleToken: String
     ): Response<LoginResponse> {
-        return apiService.login(LoginRequest(email, password, googleToken))
+        return apiService.login(LoginRequest(username, password, googleToken))
     }
 
     suspend fun createUser(userDto: UserDto): Response<LoginResponse> {

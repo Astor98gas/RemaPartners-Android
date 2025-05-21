@@ -2,7 +2,7 @@ package com.arsansys.remapartners.data.service
 
 import android.content.Context
 import com.arsansys.remapartners.data.repository.productos.ProductosApiRest
-import com.arsansys.remapartners.data.repository.user.RetrofitInstance
+import com.arsansys.remapartners.data.repository.RetrofitInstance
 import com.arsansys.remapartners.data.service.productos.ProductoService
 import com.arsansys.remapartners.data.service.productos.ProductoServiceImpl
 

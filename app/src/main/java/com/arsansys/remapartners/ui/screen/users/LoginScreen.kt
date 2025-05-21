@@ -264,6 +264,7 @@ fun LoginScreen(navController: NavController) {
 
                                         // Guardar el nombre de usuario
                                         sessionManager.saveUsername(username)
+                                        sessionManager.saveUserId(loginResponse.idUser)
 
                                         Toast.makeText(
                                             context,

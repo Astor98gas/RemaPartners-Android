@@ -66,7 +66,7 @@ import androidx.navigation.NavController
 import com.arsansys.remapartners.data.model.entities.ProductoEntity
 import com.arsansys.remapartners.data.repository.productos.ImageApiRest
 import com.arsansys.remapartners.data.repository.productos.ImageRepository
-import com.arsansys.remapartners.data.repository.user.RetrofitInstance
+import com.arsansys.remapartners.data.repository.RetrofitInstance
 import com.arsansys.remapartners.data.service.ProductoServiceInstance
 import com.arsansys.remapartners.data.service.categorias.CategoriaService
 import com.arsansys.remapartners.data.service.categorias.CategoriaServiceInstance

@@ -6,6 +6,8 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.arsansys.remapartners.ui.screen.chat.ChatDetailScreen
+import com.arsansys.remapartners.ui.screen.chat.ChatsListScreen
 import com.arsansys.remapartners.ui.screen.productos.HomeScreen
 import com.arsansys.remapartners.ui.screen.users.LoginScreen
 import com.arsansys.remapartners.ui.screen.productos.ProductoDetailScreen
@@ -18,6 +20,8 @@ sealed class Screen(val route: String) {
         fun createRoute(id: String) = "product_detail/$id"
     }
 
+    object ChatList : Screen("chat_list")
+    object ChatDetail : Screen("chat_detail")
     data object Registro : Screen("registro")
 }
 
@@ -41,6 +45,27 @@ fun AppNavigation(navController: NavHostController) {
         }
         composable(Screen.Registro.route) {
             RegistroScreen(navController)
+        }
+        composable(
+            route = Screen.ChatList.route
+        ) {
+            ChatsListScreen(navController = navController)
+        }
+
+        composable(
+            route = Screen.ChatDetail.route + "?chatId={chatId}&productId={productId}",
+            arguments = listOf(
+                navArgument("chatId") { type = NavType.StringType; defaultValue = "" },
+                navArgument("productId") { type = NavType.StringType; defaultValue = "" }
+            )
+        ) { backStackEntry ->
+            val chatId = backStackEntry.arguments?.getString("chatId") ?: ""
+            val productId = backStackEntry.arguments?.getString("productId") ?: ""
+            ChatDetailScreen(
+                navController = navController,
+                chatId = chatId,
+                productId = productId
+            )
         }
     }
 }

@@ -32,7 +32,9 @@ import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Image
@@ -86,7 +88,7 @@ import com.arsansys.remapartners.data.model.enums.EEstado
 import com.arsansys.remapartners.data.model.enums.EMoneda
 import com.arsansys.remapartners.data.repository.productos.ImageApiRest
 import com.arsansys.remapartners.data.repository.productos.ImageRepository
-import com.arsansys.remapartners.data.repository.user.RetrofitInstance
+import com.arsansys.remapartners.data.repository.RetrofitInstance
 import com.arsansys.remapartners.data.service.ProductoServiceInstance
 import com.arsansys.remapartners.data.service.categorias.CategoriaService
 import com.arsansys.remapartners.data.service.categorias.CategoriaServiceImpl
@@ -218,11 +220,14 @@ fun HomeScreen(navController: NavController) {
                 },
                 actions = {
                     if (authState) {
-                        // Usuario autenticado - mostrar acciones de perfil y logout
-                        IconButton(onClick = { /* Ir a perfil */ }) {
+                        // Usuario autenticado - mostrar acciones de chats y logout
+                        IconButton(onClick = {
+                            Log.d("HomeScreen", "Navegando a lista de chats")
+                            navController.navigate(Screen.ChatList.route)
+                        }) {
                             Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = "Perfil"
+                                imageVector = Icons.AutoMirrored.Filled.Chat,
+                                contentDescription = "Mis chats"
                             )
                         }
                         IconButton(onClick = {
