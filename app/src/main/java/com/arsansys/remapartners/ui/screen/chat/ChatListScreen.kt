@@ -29,6 +29,7 @@ import com.arsansys.remapartners.data.model.entities.ChatEntity
 import com.arsansys.remapartners.data.model.entities.MensajeEntity
 import com.arsansys.remapartners.data.repository.RetrofitInstance
 import com.arsansys.remapartners.data.repository.chat.ChatApiRest
+import com.arsansys.remapartners.data.repository.productos.ProductosApiRest
 import com.arsansys.remapartners.data.repository.user.UserApiRest
 import com.arsansys.remapartners.data.service.chat.ChatServiceImpl
 import com.arsansys.remapartners.data.util.SessionManager
@@ -219,6 +220,7 @@ fun ChatItem(
 
     // Estado para almacenar los datos del usuario
     var nombreUsuario by remember { mutableStateOf("Cargando...") }
+    var nombreProducto by remember { mutableStateOf("") }
     val context = LocalContext.current
 
     // Cargar los datos del usuario
@@ -242,6 +244,24 @@ fun ChatItem(
         } catch (e: Exception) {
             nombreUsuario = if (isCurrentUserSeller) "Comprador" else "Vendedor"
             android.util.Log.e("ChatItem", "Error al obtener usuario: ${e.message}")
+        }
+    }
+
+    // Cargar datos del producto
+    LaunchedEffect(chat.idProducto) {
+        try {
+            val productoService = RetrofitInstance.getRetrofitInstance(context)
+                .create(ProductosApiRest::class.java)
+
+            val response = productoService.getProductoById(chat.idProducto ?: "")
+            if (response.isSuccessful && response.body() != null) {
+                nombreProducto = response.body()!!.titulo ?: "Producto sin nombre"
+            } else {
+                nombreProducto = "Producto no disponible"
+            }
+        } catch (e: Exception) {
+            nombreProducto = "Producto no disponible"
+            android.util.Log.e("ChatItem", "Error al obtener producto: ${e.message}")
         }
     }
 
@@ -273,8 +293,14 @@ fun ChatItem(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-
-                // Resto del código sigue igual
+                Text(
+                    text = nombreProducto,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
                 lastMessage?.let { message ->
                     Text(
                         text = message.mensaje ?: "",
@@ -323,6 +349,10 @@ fun ChatDetailScreen(
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
 
+    // Nuevos estados para nombres
+    var nombreUsuario by remember { mutableStateOf("Usuario") }
+    var nombreProducto by remember { mutableStateOf("Producto") }
+
     val coroutineScope = rememberCoroutineScope()
     val chatService = remember {
         ChatServiceImpl(
@@ -331,24 +361,58 @@ fun ChatDetailScreen(
     }
 
     // Cargar el chat al iniciar
-    LaunchedEffect(chatId) {
+    LaunchedEffect(chatId, productId) {
         if (chatId.isNotEmpty()) {
             try {
                 isLoading = true
                 val response = chatService.getChatById(chatId)
                 if (response.isSuccessful) {
                     chat = response.body()
+
+                    // Determinar si somos vendedor o comprador
+                    val isCurrentUserSeller = chat?.idVendedor == userId
+                    val otherPersonId =
+                        if (isCurrentUserSeller) chat?.idComprador else chat?.idVendedor
+
+                    // Cargar datos del otro usuario
+                    try {
+                        val userApiRest = RetrofitInstance.getRetrofitInstance(context)
+                            .create(UserApiRest::class.java)
+                        val userResponse = userApiRest.getUserById(otherPersonId ?: "")
+                        if (userResponse.isSuccessful && userResponse.body() != null) {
+                            val usuario = userResponse.body()!!
+                            nombreUsuario = when {
+                                !usuario.username.isNullOrEmpty() -> usuario.username
+                                else -> if (isCurrentUserSeller) "Comprador" else "Vendedor"
+                            }.toString()
+                        }
+                    } catch (e: Exception) {
+                        nombreUsuario = if (isCurrentUserSeller) "Comprador" else "Vendedor"
+                    }
+
+                    // Cargar datos del producto
+                    try {
+                        val productoService = RetrofitInstance.getRetrofitInstance(context)
+                            .create(ProductosApiRest::class.java)
+                        val productResponse =
+                            productoService.getProductoById(chat?.idProducto ?: "")
+                        if (productResponse.isSuccessful && productResponse.body() != null) {
+                            nombreProducto =
+                                productResponse.body()!!.titulo ?: "Producto sin nombre"
+                        }
+                    } catch (e: Exception) {
+                        nombreProducto = "Producto no disponible"
+                    }
                 } else {
-                    error = "Error al cargar el chat: ${response.message()}"
+                    error = "No se pudo cargar el chat"
                 }
             } catch (e: Exception) {
-                error = "Error al cargar el chat: ${e.message}"
+                error = "Error: ${e.message}"
             } finally {
                 isLoading = false
             }
-        } else {
-            error = "ID de chat inválido"
-            isLoading = false
+        } else if (productId.isNotEmpty()) {
+            // Implementación para crear un nuevo chat si solo tenemos productId
         }
     }
 
@@ -356,23 +420,34 @@ fun ChatDetailScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = chat?.let {
-                            if (userId == it.idVendedor) "Chat con Comprador" else "Chat con Vendedor"
-                        } ?: "Conversación"
-                    )
+                    Column {
+                        Text(
+                            text = nombreUsuario,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = nombreProducto,
+                            fontSize = 12.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
                 },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Volver"
+                        )
                     }
                 },
                 actions = {
-                    // Botón para ver el producto
+                    // Botón para ver detalles del producto
                     IconButton(onClick = {
-                        navController.navigate(
-                            Screen.ProductDetail.createRoute(productId!!)
-                        )
+                        chat?.idProducto?.let { productId ->
+                            navController.navigate(Screen.ProductDetail.createRoute(productId))
+                        }
                     }) {
                         Icon(
                             imageVector = Icons.Default.ShoppingCart,
@@ -386,6 +461,7 @@ fun ChatDetailScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .windowInsetsPadding(WindowInsets.systemBars)
                     .padding(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
