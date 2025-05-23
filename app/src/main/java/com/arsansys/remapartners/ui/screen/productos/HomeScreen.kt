@@ -215,11 +215,31 @@ fun HomeScreen(navController: NavController) {
         }
     }
 
-    // Agregar este efecto para forzar la actualización de productosFiltrados
+// Variables de estado para los diálogos
+    var mostrarDialogoSeleccionUbicacion by remember { mutableStateOf(false) }
+    var mostrarDialogoSeleccionEstado by remember { mutableStateOf(false) }
+
+// Variables de estado para las listas filtradas
+    var ubicacionesDisponibles by remember { mutableStateOf<List<String>>(emptyList()) }
+    var estadosDisponibles by remember { mutableStateOf<List<EEstado>>(emptyList()) }
+
+// Extraer ubicaciones y estados únicos de los productos
     LaunchedEffect(productos.size) {
-        if (productos.isNotEmpty()) {
-            Log.d("HomeScreen", "Forzando actualización de productos filtrados después de carga")
-        }
+        // Extraer ubicaciones únicas
+        ubicacionesDisponibles = productos
+            .mapNotNull { it.direccion }
+            .filter { it.isNotEmpty() }
+            .distinct()
+            .sorted()
+
+        // Extraer estados únicos
+        estadosDisponibles = productos
+            .mapNotNull { it.estado }
+            .distinct()
+            .sortedBy { it.name }
+
+        Log.d("HomeScreen", "Ubicaciones disponibles: ${ubicacionesDisponibles.size}")
+        Log.d("HomeScreen", "Estados disponibles: ${estadosDisponibles.size}")
     }
 
     // Registrar receptor
@@ -367,43 +387,44 @@ fun HomeScreen(navController: NavController) {
                                 FilterChip(
                                     selected = estadoSeleccionado != null,
                                     onClick = {
-                                        // Ciclo de estados: null -> NUEVO -> COMO_NUEVO -> BUEN_ESTADO -> ACEPTABLE -> null
-                                        estadoSeleccionado = when (estadoSeleccionado) {
-                                            null -> "NUEVO"
-                                            "NUEVO" -> "COMO_NUEVO"
-                                            "COMO_NUEVO" -> "BUEN_ESTADO"
-                                            "BUEN_ESTADO" -> "ACEPTABLE"
-                                            else -> null
+                                        if (estadoSeleccionado == null) {
+                                            mostrarDialogoSeleccionEstado = true
+                                        } else {
+                                            estadoSeleccionado = null
                                         }
                                     },
                                     label = {
-                                        Text(
-                                            when (estadoSeleccionado) {
-                                                "NUEVO" -> "Nuevo"
-                                                "COMO_NUEVO" -> "Como nuevo"
-                                                "BUEN_ESTADO" -> "Buen estado"
-                                                "ACEPTABLE" -> "Aceptable"
-                                                else -> "Estado"
-                                            }
-                                        )
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.Check,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = if (estadoSeleccionado != null) {
+                                                    when (estadoSeleccionado) {
+                                                        "NUEVO" -> "Nuevo"
+                                                        "COMO_NUEVO" -> "Como nuevo"
+                                                        "BUEN_ESTADO" -> "Buen estado"
+                                                        "ACEPTABLE" -> "Aceptable"
+                                                        else -> estadoSeleccionado!!
+                                                    }
+                                                } else "Estado",
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
                                     }
-                                )
-
-                                FilterChip(
-                                    selected = soloDestacados,
-                                    onClick = { soloDestacados = !soloDestacados },
-                                    label = { Text("Destacados") }
                                 )
                             }
 
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            // Fila 2: Categoría y Ubicación
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceEvenly
                             ) {
-                                // Filtro de categoría mejorado - reemplaza completamente el componente existente
                                 FilterChip(
                                     selected = categoriaSeleccionada != null,
                                     onClick = {
@@ -433,7 +454,6 @@ fun HomeScreen(navController: NavController) {
                                     }
                                 )
 
-// Diálogo de selección de categoría - agregarlo al final de la Scaffold
                                 if (mostrarDialogoSeleccionCategoria) {
                                     AlertDialog(
                                         onDismissRequest = {
@@ -515,21 +535,185 @@ fun HomeScreen(navController: NavController) {
                                         }
                                     )
                                 }
+
                                 // Filtro de ubicación
                                 FilterChip(
                                     selected = ubicacionSeleccionada != null,
                                     onClick = {
-                                        ubicacionSeleccionada = when (ubicacionSeleccionada) {
-                                            null -> "Madrid"
-                                            "Madrid" -> "Barcelona"
-                                            "Barcelona" -> "Valencia"
-                                            else -> null
+                                        if (ubicacionSeleccionada == null) {
+                                            // Mostrar diálogo de selección
+                                            mostrarDialogoSeleccionUbicacion = true
+                                        } else {
+                                            // Limpiar selección actual
+                                            ubicacionSeleccionada = null
                                         }
                                     },
                                     label = {
-                                        Text(ubicacionSeleccionada ?: "Ubicación")
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.LocationOn,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = ubicacionSeleccionada ?: "Ubicación",
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
                                     }
                                 )
+
+                                if (mostrarDialogoSeleccionUbicacion) {
+                                    AlertDialog(
+                                        onDismissRequest = {
+                                            mostrarDialogoSeleccionUbicacion = false
+                                        },
+                                        title = { Text("Seleccionar ubicación") },
+                                        text = {
+                                            if (ubicacionesDisponibles.isEmpty()) {
+                                                Text("No hay ubicaciones disponibles")
+                                            } else {
+                                                LazyColumn(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .heightIn(max = 300.dp)
+                                                ) {
+                                                    items(ubicacionesDisponibles.size) { index ->
+                                                        val ubicacion =
+                                                            ubicacionesDisponibles[index]
+                                                        Surface(
+                                                            modifier = Modifier
+                                                                .fillMaxWidth()
+                                                                .clickable {
+                                                                    ubicacionSeleccionada =
+                                                                        ubicacion
+                                                                    mostrarDialogoSeleccionUbicacion =
+                                                                        false
+                                                                },
+                                                            color = if (ubicacion == ubicacionSeleccionada)
+                                                                MaterialTheme.colorScheme.primaryContainer
+                                                            else
+                                                                MaterialTheme.colorScheme.surface
+                                                        ) {
+                                                            Row(
+                                                                modifier = Modifier
+                                                                    .fillMaxWidth()
+                                                                    .padding(
+                                                                        vertical = 12.dp,
+                                                                        horizontal = 16.dp
+                                                                    ),
+                                                                verticalAlignment = Alignment.CenterVertically
+                                                            ) {
+                                                                Text(
+                                                                    text = ubicacion,
+                                                                    style = MaterialTheme.typography.bodyLarge,
+                                                                    modifier = Modifier.weight(1f)
+                                                                )
+
+                                                                if (ubicacion == ubicacionSeleccionada) {
+                                                                    Icon(
+                                                                        imageVector = Icons.Default.Check,
+                                                                        contentDescription = "Seleccionada",
+                                                                        tint = MaterialTheme.colorScheme.primary
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+                                                        Divider()
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        confirmButton = {
+                                            TextButton(onClick = {
+                                                mostrarDialogoSeleccionUbicacion = false
+                                            }) {
+                                                Text("Cerrar")
+                                            }
+                                        }
+                                    )
+                                }
+
+                                if (mostrarDialogoSeleccionEstado) {
+                                    AlertDialog(
+                                        onDismissRequest = {
+                                            mostrarDialogoSeleccionEstado = false
+                                        },
+                                        title = { Text("Seleccionar estado") },
+                                        text = {
+                                            if (estadosDisponibles.isEmpty()) {
+                                                Text("No hay estados disponibles")
+                                            } else {
+                                                LazyColumn(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .heightIn(max = 300.dp)
+                                                ) {
+                                                    items(estadosDisponibles.size) { index ->
+                                                        val estado = estadosDisponibles[index]
+                                                        Surface(
+                                                            modifier = Modifier
+                                                                .fillMaxWidth()
+                                                                .clickable {
+                                                                    estadoSeleccionado = estado.name
+                                                                    mostrarDialogoSeleccionEstado =
+                                                                        false
+                                                                },
+                                                            color = if (estado.name == estadoSeleccionado)
+                                                                MaterialTheme.colorScheme.primaryContainer
+                                                            else
+                                                                MaterialTheme.colorScheme.surface
+                                                        ) {
+                                                            Row(
+                                                                modifier = Modifier
+                                                                    .fillMaxWidth()
+                                                                    .padding(
+                                                                        vertical = 12.dp,
+                                                                        horizontal = 16.dp
+                                                                    ),
+                                                                verticalAlignment = Alignment.CenterVertically
+                                                            ) {
+                                                                StatusChip(estado = estado)
+
+                                                                Spacer(modifier = Modifier.width(8.dp))
+
+                                                                Text(
+                                                                    text = when (estado.name) {
+                                                                        "NUEVO" -> "Nuevo"
+                                                                        "COMO_NUEVO" -> "Como nuevo"
+                                                                        "BUEN_ESTADO" -> "Buen estado"
+                                                                        "ACEPTABLE" -> "Aceptable"
+                                                                        else -> estado.name
+                                                                    },
+                                                                    style = MaterialTheme.typography.bodyLarge,
+                                                                    modifier = Modifier.weight(1f)
+                                                                )
+
+                                                                if (estado.name == estadoSeleccionado) {
+                                                                    Icon(
+                                                                        imageVector = Icons.Default.Check,
+                                                                        contentDescription = "Seleccionado",
+                                                                        tint = MaterialTheme.colorScheme.primary
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+                                                        Divider()
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        confirmButton = {
+                                            TextButton(onClick = {
+                                                mostrarDialogoSeleccionEstado = false
+                                            }) {
+                                                Text("Cerrar")
+                                            }
+                                        }
+                                    )
+                                }
                             }
 
                             // Botón para limpiar todos los filtros
