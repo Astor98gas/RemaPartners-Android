@@ -10,7 +10,7 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.time.LocalDateTime
 
 object RetrofitInstance {
-    //    private const val BASE_URL = "http://192.168.1.50:8080/"
+    //    private const val BASE_URL = "http://192.168.72.144:8080/"
     private const val BASE_URL = "http://172.16.55.193:8080/"
 
     fun getRetrofitInstance(context: Context): Retrofit {

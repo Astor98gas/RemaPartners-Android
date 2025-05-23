@@ -10,4 +10,7 @@ interface CategoriaApiRest {
     @GET("admin/categoria/getById/{id}")
     suspend fun getCategoriaById(@Path("id") id: String): Response<CategoriaEntity>
 
+    @GET("admin/categoria/getAll")
+    suspend fun getAllCategorias(): Response<List<CategoriaEntity>>
+
 }

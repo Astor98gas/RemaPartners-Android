@@ -34,6 +34,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
@@ -98,8 +99,10 @@ import com.arsansys.remapartners.data.util.ImageCache
 import kotlinx.coroutines.launch
 import com.arsansys.remapartners.data.util.SessionManager
 import com.arsansys.remapartners.ui.navigation.Screen
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -480,11 +483,10 @@ fun HomeScreen(navController: NavController) {
 
 @Composable
 fun ProductoCardCompact(producto: ProductoEntity, navController: NavController, context: Context) {
-    // Versión compacta de la tarjeta para la vista de cuadrícula
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(300.dp), // Incrementamos ligeramente la altura para acomodar más información
+            .height(320.dp),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         onClick = {
@@ -507,6 +509,7 @@ fun ProductoCardCompact(producto: ProductoEntity, navController: NavController, 
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(8.dp)
+                    .weight(1f)
             ) {
                 // Título
                 Text(
@@ -524,26 +527,62 @@ fun ProductoCardCompact(producto: ProductoEntity, navController: NavController, 
                     fontSize = 16.sp
                 )
 
-                // Categoría (nuevo)
-                producto.idCategoria?.let { categoriaId ->
-                    var nombreCategoria by remember { mutableStateOf("Cargando...") }
+// Categoría - mostramos siempre un espacio para ella
+                var nombreCategoria by remember { mutableStateOf("Cargando...") }
 
-                    LaunchedEffect(categoriaId) {
-                        nombreCategoria = obtenerNombreCategoria(
-                            categoriaId,
-                            CategoriaServiceInstance.getInstance(context),
-                            context
-                        )
+// Usamos remember para mantener la referencia al categoriaId
+                val categoriaIdRemembered = remember(producto.idCategoria) { producto.idCategoria }
+
+// LaunchedEffect con clave más estable para evitar reinicios innecesarios
+                LaunchedEffect(categoriaIdRemembered) {
+                    categoriaIdRemembered?.let { categoriaId ->
+                        try {
+                            // Mostramos explícitamente estado de carga
+                            nombreCategoria = "Cargando..."
+
+                            // Uso de withContext para asegurar que la operación se complete
+                            withContext(Dispatchers.IO) {
+                                val nombre = obtenerNombreCategoria(
+                                    categoriaId,
+                                    CategoriaServiceInstance.getInstance(context),
+                                    context
+                                )
+                                // Actualizamos el estado en el hilo principal
+                                withContext(Dispatchers.Main) {
+                                    nombreCategoria = nombre
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e("ProductoCard", "Error cargando categoría: ${e.message}", e)
+                            nombreCategoria = "Sin categoría"
+                        }
+                    } ?: run {
+                        nombreCategoria = "Sin categoría"
                     }
+                }
 
+                // Mostramos siempre la fila de categoría para mantener el layout consistente
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Category,
+                        contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.secondary
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = "Categoría: $nombreCategoria",
+                        text = nombreCategoria,
                         fontSize = 12.sp,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        color = MaterialTheme.colorScheme.outline
+                        color = MaterialTheme.colorScheme.secondary
                     )
                 }
+
+                Spacer(modifier = Modifier.weight(1f))
 
                 // Estado y ubicación
                 Row(
@@ -556,7 +595,7 @@ fun ProductoCardCompact(producto: ProductoEntity, navController: NavController, 
                         StatusChip(estado = it)
                     }
 
-                    // Ubicación con icono (mejorada)
+                    // Ubicación con icono
                     producto.direccion?.let {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
