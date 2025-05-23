@@ -12,4 +12,13 @@ class CategoriaServiceImpl(private val categoriaApiRest: CategoriaApiRest) : Cat
             CategoriaEntity()
         }
     }
+
+    override suspend fun getAllCategorias(): List<CategoriaEntity> {
+        val response = categoriaApiRest.getAllCategorias()
+        return if (response.isSuccessful) {
+            response.body() ?: emptyList()
+        } else {
+            emptyList()
+        }
+    }
 }

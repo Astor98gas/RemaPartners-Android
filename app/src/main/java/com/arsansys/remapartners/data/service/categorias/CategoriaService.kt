@@ -4,4 +4,5 @@ import com.arsansys.remapartners.data.model.entities.CategoriaEntity
 
 interface CategoriaService {
     suspend fun getCategoriaById(id: String): CategoriaEntity
+    suspend fun getAllCategorias(): List<CategoriaEntity>
 }

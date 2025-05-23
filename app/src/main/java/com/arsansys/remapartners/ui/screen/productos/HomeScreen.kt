@@ -15,6 +15,7 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,9 +26,11 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -36,6 +39,7 @@ import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Image
@@ -43,18 +47,23 @@ import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.SearchOff
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -114,6 +123,8 @@ fun HomeScreen(navController: NavController) {
     val retrofit = RetrofitInstance.getRetrofitInstance(context)
     val productoService = ProductoServiceInstance.getInstance(context)
     val categoriaService = CategoriaServiceInstance.getInstance(context)
+
+    var mostrarDialogoSeleccionCategoria by remember { mutableStateOf(false) }
 
 
     val productos = remember { mutableStateListOf<ProductoEntity>() }
@@ -178,14 +189,27 @@ fun HomeScreen(navController: NavController) {
         }
     }
 
-    // Después de la carga de productos
+    var categorias by remember { mutableStateOf<List<CategoriaEntity>>(emptyList()) }
+    var isLoadingCategorias by remember { mutableStateOf(true) }
+    var nombreCategoriaSeleccionada by remember { mutableStateOf<String?>(null) }
+
+// Cargar categorías al inicio
     LaunchedEffect(Unit) {
         isLoading = true
         try {
+            withContext(Dispatchers.IO) {
+                // Carga de categorías
+                val categoriasResponse = categoriaService.getAllCategorias()
+                withContext(Dispatchers.Main) {
+                    categorias = categoriasResponse
+                    Log.d("HomeScreen", "Categorías cargadas: ${categorias.size}")
+                    isLoadingCategorias = false
+                }
+            }
+            // Carga de productos
             cargarProductos(productoService, productos, context)
-            delay(200)
         } catch (e: Exception) {
-            Log.e("HomeScreen", "Error cargando productos", e)
+            Log.e("HomeScreen", "Error cargando datos: ${e.message}", e)
         } finally {
             isLoading = false
         }
@@ -379,30 +403,118 @@ fun HomeScreen(navController: NavController) {
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceEvenly
                             ) {
-                                // Filtro de categoría
+                                // Filtro de categoría mejorado - reemplaza completamente el componente existente
                                 FilterChip(
                                     selected = categoriaSeleccionada != null,
                                     onClick = {
-                                        // Ciclo de categorías principales: null -> 1 -> 2 -> 3 -> null
-                                        categoriaSeleccionada = when (categoriaSeleccionada) {
-                                            null -> "1" // Electrónica
-                                            "1" -> "2"  // Moda
-                                            "2" -> "3"  // Hogar
-                                            else -> null
+                                        if (categoriaSeleccionada == null) {
+                                            // Mostrar diálogo de selección de categoría
+                                            mostrarDialogoSeleccionCategoria = true
+                                        } else {
+                                            // Limpiar selección actual
+                                            categoriaSeleccionada = null
+                                            nombreCategoriaSeleccionada = null
                                         }
                                     },
                                     label = {
-                                        Text(
-                                            when (categoriaSeleccionada) {
-                                                "1" -> "Electrónica"
-                                                "2" -> "Moda"
-                                                "3" -> "Hogar"
-                                                else -> "Categoría"
-                                            }
-                                        )
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.Category,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = nombreCategoriaSeleccionada ?: "Categoría",
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
                                     }
                                 )
 
+// Diálogo de selección de categoría - agregarlo al final de la Scaffold
+                                if (mostrarDialogoSeleccionCategoria) {
+                                    AlertDialog(
+                                        onDismissRequest = {
+                                            mostrarDialogoSeleccionCategoria = false
+                                        },
+                                        title = { Text("Seleccionar categoría") },
+                                        text = {
+                                            if (isLoadingCategorias) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .height(200.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    CircularProgressIndicator()
+                                                }
+                                            } else if (categorias.isEmpty()) {
+                                                Text("No hay categorías disponibles")
+                                            } else {
+                                                LazyColumn(
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .heightIn(max = 300.dp)
+                                                ) {
+                                                    items(categorias.size) { index ->
+                                                        val categoria = categorias[index]
+                                                        Surface(
+                                                            modifier = Modifier
+                                                                .fillMaxWidth()
+                                                                .clickable {
+                                                                    categoriaSeleccionada =
+                                                                        categoria.id
+                                                                    nombreCategoriaSeleccionada =
+                                                                        categoria.titulo
+                                                                    mostrarDialogoSeleccionCategoria =
+                                                                        false
+                                                                },
+                                                            color = if (categoria.id == categoriaSeleccionada)
+                                                                MaterialTheme.colorScheme.primaryContainer
+                                                            else
+                                                                MaterialTheme.colorScheme.surface
+                                                        ) {
+                                                            Row(
+                                                                modifier = Modifier
+                                                                    .fillMaxWidth()
+                                                                    .padding(
+                                                                        vertical = 12.dp,
+                                                                        horizontal = 16.dp
+                                                                    ),
+                                                                verticalAlignment = Alignment.CenterVertically
+                                                            ) {
+                                                                Text(
+                                                                    text = categoria.titulo
+                                                                        ?: "Sin nombre",
+                                                                    style = MaterialTheme.typography.bodyLarge,
+                                                                    modifier = Modifier.weight(1f)
+                                                                )
+
+                                                                if (categoria.id == categoriaSeleccionada) {
+                                                                    Icon(
+                                                                        imageVector = Icons.Default.Check,
+                                                                        contentDescription = "Seleccionada",
+                                                                        tint = MaterialTheme.colorScheme.primary
+                                                                    )
+                                                                }
+                                                            }
+                                                        }
+                                                        Divider()
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        confirmButton = {
+                                            TextButton(onClick = {
+                                                mostrarDialogoSeleccionCategoria = false
+                                            }) {
+                                                Text("Cerrar")
+                                            }
+                                        }
+                                    )
+                                }
                                 // Filtro de ubicación
                                 FilterChip(
                                     selected = ubicacionSeleccionada != null,
